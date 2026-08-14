@@ -1,0 +1,1302 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>版權週期管理</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@500;700;900&family=Noto+Sans+TC:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink-900:#3A352E;
+    --ink-800:#4A443B;
+    --ink-700:#5C5548;
+    --paper:#F1EEE7;
+    --paper-dim:#E5E1D7;
+    --card:#FAF9F5;
+    --brass:#8C8272;
+    --brass-dim:#6E6558;
+    --seal:#A23324;
+    --seal-bg:#F5DCD6;
+    --sage:#6E7A68;
+    --sage-bg:#E4E7DF;
+    --amber:#B67B1F;
+    --amber-bg:#F3E3C4;
+    --slate:#736C60;
+    --slate-bg:#E6E2D7;
+    --line:#D6D0C2;
+    --font-display:'Noto Serif TC', 'PingFang TC', 'Microsoft JhengHei', serif;
+    --font-body:'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif;
+    --font-mono:'IBM Plex Mono', 'Courier New', monospace;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--paper);
+    background-image:
+      linear-gradient(var(--paper-dim) 1px, transparent 1px),
+      linear-gradient(90deg, var(--paper-dim) 1px, transparent 1px);
+    background-size:28px 28px;
+    color:var(--ink-900);
+    font-family:var(--font-body);
+    -webkit-font-smoothing:antialiased;
+  }
+  #app{max-width:1180px;margin:0 auto;padding:28px 20px 80px;}
+
+  /* Header */
+  .masthead{
+    display:flex;align-items:flex-end;justify-content:space-between;
+    border-bottom:3px solid var(--ink-900);
+    padding-bottom:16px;margin-bottom:6px;flex-wrap:wrap;gap:12px;
+  }
+  .masthead h1{
+    font-family:var(--font-display);font-weight:900;font-size:30px;
+    margin:0;color:var(--ink-900);letter-spacing:.5px;
+  }
+  .masthead .sub{font-size:12.5px;color:var(--slate);margin-top:4px;font-family:var(--font-mono);}
+  .stampmark{
+    width:64px;height:64px;border-radius:50%;
+    border:2.5px solid var(--seal);color:var(--seal);
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--font-display);font-weight:900;font-size:13px;
+    transform:rotate(-8deg);opacity:.85;text-align:center;line-height:1.15;
+    flex-shrink:0;
+  }
+
+  /* Tabs */
+  .tabs{display:flex;gap:6px;margin:18px 0 22px;flex-wrap:wrap;}
+  .tab{
+    font-family:var(--font-display);font-weight:700;font-size:14.5px;
+    padding:10px 20px 9px;background:var(--paper-dim);color:var(--ink-800);
+    border:1px solid var(--line);border-bottom:none;
+    border-radius:8px 8px 0 0;cursor:pointer;position:relative;top:1px;
+  }
+  .tab.active{background:var(--card);color:var(--ink-900);border-color:var(--ink-900);
+    box-shadow:0 -2px 0 var(--brass) inset;}
+  .tab:hover:not(.active){background:#DCD5C4;}
+
+  .panel{background:var(--card);border:1px solid var(--ink-900);border-radius:0 10px 10px 10px;
+    padding:22px;box-shadow:3px 4px 0 rgba(18,32,59,0.08);}
+
+  /* summary bar */
+  .summary-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px;}
+  .sum-chip{flex:1;min-width:120px;border:1px solid var(--line);border-radius:8px;
+    padding:10px 14px;background:var(--paper);}
+  .sum-chip .n{font-family:var(--font-mono);font-size:22px;font-weight:600;}
+  .sum-chip .l{font-size:12px;color:var(--slate);margin-top:2px;}
+  .sum-chip.overdue .n{color:var(--seal);}
+  .sum-chip.soon .n{color:var(--amber);}
+  .sum-chip.done .n{color:var(--sage);}
+
+  button{font-family:var(--font-body);cursor:pointer;}
+  .btn{
+    border:1px solid var(--ink-900);background:var(--ink-900);color:var(--card);
+    padding:8px 16px;border-radius:6px;font-size:13.5px;font-weight:600;
+  }
+  .btn:hover{background:var(--ink-800);}
+  .btn.secondary{background:transparent;color:var(--ink-900);}
+  .btn.secondary:hover{background:var(--paper-dim);}
+  .btn.danger{border-color:var(--seal);background:transparent;color:var(--seal);}
+  .btn.danger:hover{background:var(--seal-bg);}
+  .btn.small{padding:5px 11px;font-size:12px;}
+
+  input,select,textarea{
+    font-family:var(--font-body);border:1px solid var(--line);border-radius:6px;
+    padding:8px 10px;font-size:13.5px;background:#fff;color:var(--ink-900);width:100%;
+  }
+  label{font-size:12px;color:var(--slate);font-weight:600;display:block;margin-bottom:4px;}
+  .field{margin-bottom:12px;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+  @media(max-width:640px){.grid2,.grid3{grid-template-columns:1fr;}}
+
+  .toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:10px;flex-wrap:wrap;}
+  .toolbar h2{font-family:var(--font-display);font-size:19px;margin:0;}
+
+  /* project cards */
+  .proj-list{display:flex;flex-direction:column;gap:10px;}
+  .proj-card{
+    border:1px solid var(--line);border-radius:8px;background:var(--paper);
+    padding:14px 16px;cursor:pointer;transition:border-color .15s;
+  }
+  .proj-card:hover{border-color:var(--ink-900);}
+  .proj-card.selected{border-color:var(--brass);border-width:2px;background:#FBFAF7;}
+  .proj-card.is-overdue{border-left:5px solid var(--seal);}
+  .proj-top{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;}
+  .proj-name{font-family:var(--font-display);font-weight:700;font-size:16px;}
+  .proj-holder{font-size:12px;color:var(--slate);margin-top:2px;}
+  .stage-badge{
+    font-family:var(--font-mono);font-size:11.5px;font-weight:600;padding:5px 10px;
+    border-radius:999px;white-space:nowrap;
+  }
+  .stage-badge.pending{background:var(--slate-bg);color:var(--slate);}
+  .stage-badge.active{background:#E6E0D2;color:var(--brass-dim);}
+  .stage-badge.overdue{background:var(--seal-bg);color:var(--seal);}
+  .stage-badge.done{background:var(--sage-bg);color:var(--sage);}
+  .proj-meta{margin-top:6px;font-size:12px;color:var(--ink-700);}
+
+  /* detail */
+  .detail{margin-top:18px;border-top:2px solid var(--ink-900);padding-top:18px;}
+  .timeline{display:flex;flex-direction:column;gap:0;margin:14px 0;}
+  .stage-row{display:flex;gap:14px;position:relative;padding:12px 0;}
+  .stage-row:not(:last-child){border-bottom:1px dashed var(--line);}
+  .stamp{
+    width:46px;height:46px;border-radius:50%;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--font-display);font-weight:900;font-size:13px;
+    border:2px solid var(--slate);color:var(--slate);
+  }
+  .stamp.active{border-color:var(--brass);color:var(--brass-dim);transform:rotate(-6deg);}
+  .stamp.done{border-color:var(--sage);color:var(--sage);background:var(--sage-bg);}
+  .stamp.overdue{border-color:var(--seal);color:var(--seal);background:var(--seal-bg);transform:rotate(4deg);}
+  .stage-body{flex:1;}
+  .stage-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;}
+  .stage-head .name{font-weight:700;font-family:var(--font-display);font-size:15px;}
+  .stage-dates{font-family:var(--font-mono);font-size:12px;color:var(--slate);margin-top:3px;}
+  .stage-note{font-size:12.5px;color:var(--ink-700);margin-top:5px;background:var(--paper);
+    border-left:3px solid var(--brass);padding:6px 10px;border-radius:0 4px 4px 0;}
+  .warn-inline{color:var(--seal);font-weight:700;}
+
+  .badge-row{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0;}
+  .info-badge{border:1px solid var(--line);background:var(--paper);border-radius:6px;
+    padding:8px 12px;font-size:12.5px;min-width:150px;}
+  .info-badge b{display:block;font-size:11px;color:var(--slate);font-weight:600;margin-bottom:2px;}
+
+  .empty{color:var(--slate);font-size:13.5px;padding:30px 10px;text-align:center;}
+
+  /* table */
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th{text-align:left;font-family:var(--font-display);font-size:12.5px;color:var(--ink-800);
+    border-bottom:2px solid var(--ink-900);padding:8px 10px;background:var(--paper);position:sticky;top:0;}
+  td{padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top;}
+  tr.row-overdue{background:var(--seal-bg);}
+  tr.row-soon{background:var(--amber-bg);}
+  tr.row-done{opacity:.6;}
+  tr.row-notpursued{background:var(--slate-bg);}
+  .pill{font-family:var(--font-mono);font-size:11px;padding:3px 8px;border-radius:999px;display:inline-block;}
+  .pill.blue{background:#E1E4E9;color:#4A5568;}
+  .pill.green{background:var(--sage-bg);color:var(--sage);}
+  .pill.amber{background:var(--amber-bg);color:var(--amber);}
+  .pill.red{background:var(--seal-bg);color:var(--seal);}
+  .pill.gray{background:var(--slate-bg);color:var(--slate);}
+
+  /* search tab */
+  .holder-chips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 16px;}
+  .holder-chip{font-size:12px;border:1px solid var(--line);background:var(--paper);
+    border-radius:999px;padding:5px 12px;cursor:pointer;}
+  .holder-chip:hover{border-color:var(--brass);}
+  .search-row-actions{display:flex;gap:6px;}
+
+  .form-card{border:1px dashed var(--brass);background:#FBFAF7;border-radius:8px;padding:16px;margin-bottom:18px;}
+  .form-card h3{margin:0 0 12px;font-family:var(--font-display);font-size:15px;}
+  .close-x{float:right;background:none;border:none;color:var(--slate);font-size:15px;}
+  .hint{font-size:11.5px;color:var(--slate);margin-top:-6px;margin-bottom:10px;}
+  .loading{padding:40px;text-align:center;color:var(--slate);font-family:var(--font-mono);font-size:13px;}
+
+  /* analysis tab */
+  .analysis-grid{display:flex;gap:32px;flex-wrap:wrap;align-items:flex-start;margin-bottom:24px;}
+  .donut-wrap{position:relative;width:200px;height:200px;flex-shrink:0;}
+  .donut{width:200px;height:200px;border-radius:50%;box-shadow:0 0 0 1px var(--line);}
+  .donut-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+    width:118px;height:118px;border-radius:50%;background:var(--card);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    box-shadow:inset 0 0 0 1px var(--line);}
+  .donut-center .num{font-family:var(--font-mono);font-size:22px;font-weight:600;color:var(--ink-900);}
+  .donut-center .lbl{font-size:10px;color:var(--slate);margin-top:2px;text-align:center;line-height:1.3;}
+  .legend{display:flex;flex-direction:column;gap:12px;min-width:220px;flex:1;}
+  .legend-item{display:flex;align-items:flex-start;gap:9px;font-size:13px;}
+  .legend-swatch{width:13px;height:13px;border-radius:3px;flex-shrink:0;margin-top:3px;}
+  .legend-item .li-main{flex:1;}
+  .legend-item b{font-family:var(--font-mono);}
+  .legend-item .li-sub{font-size:11.5px;color:var(--slate);margin-top:1px;}
+  .bottleneck-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px dashed var(--line);}
+  .bottleneck-rank{font-family:var(--font-mono);font-size:12px;color:var(--slate);width:22px;flex-shrink:0;}
+  .bottleneck-bar-track{flex:1;height:8px;background:var(--paper-dim);border-radius:999px;overflow:hidden;}
+  .bottleneck-bar-fill{height:100%;border-radius:999px;}
+  .bottleneck-days{font-family:var(--font-mono);font-size:12.5px;width:56px;text-align:right;flex-shrink:0;}
+</style>
+</head>
+<body>
+<div id="app"><div class="loading">載入資料中…</div></div>
+
+<script>
+const STAGES = [
+  {key:'contractFinal', label:'合約審批', min:30, max:30},
+  {key:'dualSign',      label:'雙蓋',     min:30, max:30},
+  {key:'notarization',  label:'公證',     min:15, max:30},
+  {key:'submission',    label:'送審',     min:60, max:90},
+];
+const NOTARY_RULES = ['需雙蓋後','需定稿後','需用印後','可先進行'];
+const LICENSE_RULES = ['可提早給','合約審批給','雙蓋後給'];
+const APPROVAL_SOURCES = ['外部可取得(加快送審)','直送取得'];
+const SUBMISSION_STATUSES = [
+  {v:'notSent', l:'未送件'},
+  {v:'inProgress', l:'文化部攬件授理中'},
+  {v:'obtained', l:'已取得'},
+];
+const MATERIALS_TIMING_OPTIONS = ['合約定稿後提供','可先提供正片','合約審批時提供'];
+function submissionLabel(v){ const f=SUBMISSION_STATUSES.find(x=>x.v===v); return f?f.l:'未送件'; }
+const REVIEW_STATUSES = ['已審片過','僅詢問','已審片但不評估'];
+const COLOR_OPTIONS = [
+  {v:'blue', l:'藍｜他方持有／未到期'},
+  {v:'green', l:'綠｜可洽談'},
+  {v:'amber', l:'橘｜即將到期'},
+  {v:'red', l:'紅｜其他狀況'},
+  {v:'gray', l:'灰｜狀態未知'},
+];
+
+let state = {
+  tab: 'progress',
+  projects: [],
+  entries: [],
+  selectedProjectId: null,
+  showNewProject: false,
+  showExcelImportConfirm: false,
+  excelImportResultMsg: '',
+  showNewEntry: false,
+  editEntryId: null,
+  searchQuery: '',
+  loaded: false,
+  confirmDeleteProjectId: null,
+  confirmDeleteEntryId: null,
+  completingProjectId: null,
+  npError: '',
+  neError: '',
+  saveError: '',
+};
+
+function uid(p){ return p+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function addDays(dateStr, n){
+  const d = new Date(dateStr+'T00:00:00');
+  d.setDate(d.getDate()+n);
+  return d.toISOString().slice(0,10);
+}
+function daysBetween(a,b){ // b - a, in days
+  return Math.round((new Date(b+'T00:00:00') - new Date(a+'T00:00:00'))/86400000);
+}
+function fmt(d){ if(!d) return '—'; const [y,m,dd]=d.split('-'); return `${y}/${m}/${dd}`; }
+function stageProgress(st, sConf){
+  // st: {start,due,done,doneDate}  sConf: {min,max}
+  if(!st.start) return {started:false};
+  const endPoint = st.done ? st.doneDate : todayStr();
+  const elapsed = Math.max(0, daysBetween(st.start, endPoint));
+  const remainMin = Math.max(0, sConf.min - elapsed);
+  const remainMax = Math.max(0, sConf.max - elapsed);
+  const overDays = Math.max(0, elapsed - sConf.max);
+  const overdue = !st.done && overDays > 0;
+  const finishedLate = st.done && overDays > 0;
+  return {started:true, elapsed, remainMin, remainMax, overdue, overDays, finishedLate};
+}
+function esc(s){ return (s||'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+
+/* ---------- Excel 匯入（一次性，2026-08 資料匯入） ---------- */
+const IMPORT_SEED_PROJECTS = [{"name": "MOD奔跑.春色.好團圓", "holder": "萬達", "currentStageIndex": 1, "completed": false, "stages": {"contractFinal": {"start": "2026-07-03", "due": "2026-08-02", "done": true, "doneDate": "2026-08-13", "earlyCompleted": false}, "dualSign": {"start": "2026-08-13", "due": "2026-09-12", "done": false, "doneDate": null, "earlyCompleted": false}, "notarization": {"start": null, "due": null, "done": false, "doneDate": null, "earlyCompleted": false}, "submission": {"start": null, "due": null, "done": false, "doneDate": null, "earlyCompleted": false}}, "rules": {"materialsTiming": "合約定稿後提供", "materialsNote": "尚未.萬達卡製作、送審中", "notaryRule": "需定稿後", "licenseRule": "可提早給", "licenseNote": ""}, "approvalCert": {"obtained": false, "source": "", "note": ""}, "submission": {"status": "notSent", "note": ""}, "masterExtraction": {"scope": "pending", "note": ""}, "licenseChain": {"obtained": true}, "note": ""}, {"name": "燦爛的轉身", "holder": "九樣", "currentStageIndex": 1, "completed": false, "stages": {"contractFinal": {"start": "2026-07-03", "due": "2026-08-02", "done": true, "doneDate": "2026-08-10", "earlyCompleted": false}, "dualSign": {"start": "2026-08-10", "due": "2026-09-09", "done": false, "doneDate": null, "earlyCompleted": false}, "notarization": {"start": null, "due": null, "done": false, "doneDate": null, "earlyCompleted": false}, "submission": {"start": null, "due": null, "done": false, "doneDate": null, "earlyCompleted": false}}, "rules": {"materialsTiming": "合約定稿後提供", "materialsNote": "5集後", "notaryRule": "需用印後", "licenseRule": "可提早給", "licenseNote": "已提供"}, "approvalCert": {"obtained": false, "source": "", "note": ""}, "submission": {"status": "notSent", "note": ""}, "masterExtraction": {"scope": "partial", "note": "目前取1-5"}, "licenseChain": {"obtained": true}, "note": ""}, {"name": "愛情沒有神話", "holder": "新麗", "currentStageIndex": 1, "completed": false, "stages": {"contractFinal": {"start": "2026-06-18", "due": "2026-07-18", "done": true, "doneDate": "2026-07-29", "earlyCompleted": false}, "dualSign": {"start": "2026-07-29", "due": "2026-08-28", "done": false, "doneDate": null, "earlyCompleted": false}, "notarization": {"start": null, "due": null, "done": false, "doneDate": null, "earlyCompleted": false}, "submission": {"start": null, "due": null, "done": false, "doneDate": null, "earlyCompleted": false}}, "rules": {"materialsTiming": "合約審批時提供", "materialsNote": "提供10集", "notaryRule": "需用印後", "licenseRule": "雙蓋後給", "licenseNote": ""}, "approvalCert": {"obtained": false, "source": "", "note": ""}, "submission": {"status": "notSent", "note": ""}, "masterExtraction": {"scope": "pending", "note": ""}, "licenseChain": {"obtained": false}, "note": ""}, {"name": "蜜語紀", "holder": "無錫", "currentStageIndex": 3, "completed": false, "stages": {"contractFinal": {"start": "2026-06-05", "due": "2026-07-05", "done": true, "doneDate": "2026-06-08", "earlyCompleted": false}, "dualSign": {"start": "2026-06-08", "due": "2026-07-08", "done": true, "doneDate": "2026-07-23", "earlyCompleted": false}, "notarization": {"start": "2026-06-08", "due": "2026-07-08", "done": true, "doneDate": "2026-06-15", "earlyCompleted": false}, "submission": {"start": "2026-06-15", "due": "2026-09-13", "done": false, "doneDate": null, "earlyCompleted": false}}, "rules": {"materialsTiming": "合約定稿後提供", "materialsNote": "一半集數", "notaryRule": "需定稿後", "licenseRule": "可提早給", "licenseNote": ""}, "approvalCert": {"obtained": true, "source": "", "note": ""}, "submission": {"status": "notSent", "note": ""}, "masterExtraction": {"scope": "full", "note": ""}, "licenseChain": {"obtained": true}, "note": ""}, {"name": "問心2", "holder": "檸萌", "currentStageIndex": 1, "completed": false, "stages": {"contractFinal": {"start": "2026-06-16", "due": "2026-07-16", "done": true, "doneDate": "2026-07-29", "earlyCompleted": false}, "dualSign": {"start": "2026-07-29", "due": "2026-08-28", "done": false, "doneDate": null, "earlyCompleted": false}, "notarization": {"start": null, "due": null, "done": false, "doneDate": null, "earlyCompleted": false}, "submission": {"start": null, "due": null, "done": false, "doneDate": null, "earlyCompleted": false}}, "rules": {"materialsTiming": "可先提供正片", "materialsNote": "全集", "notaryRule": "需用印後", "licenseRule": "可提早給", "licenseNote": "已取得"}, "approvalCert": {"obtained": false, "source": "", "note": ""}, "submission": {"status": "notSent", "note": ""}, "masterExtraction": {"scope": "full", "note": ""}, "licenseChain": {"obtained": true}, "note": ""}, {"name": "夜色正濃", "holder": "騰訊", "currentStageIndex": 0, "completed": false, "stages": {"contractFinal": {"start": "2026-06-08", "due": "2026-07-08", "done": false, "doneDate": null, "earlyCompleted": false}, "dualSign": {"start": null, "due": null, "done": false, "doneDate": null, "earlyCompleted": false}, "notarization": {"start": null, "due": null, "done": false, "doneDate": null, "earlyCompleted": false}, "submission": {"start": null, "due": null, "done": false, "doneDate": null, "earlyCompleted": false}}, "rules": {"materialsTiming": "合約定稿後提供", "materialsNote": "", "notaryRule": "需用印後", "licenseRule": "合約定稿給", "licenseNote": ""}, "approvalCert": {"obtained": false, "source": "外部可取得(加快送審)", "note": ""}, "submission": {"status": "notSent", "note": ""}, "masterExtraction": {"scope": "pending", "note": "合約定稿提供"}, "licenseChain": {"obtained": false}, "note": ""}];
+const IMPORT_SEED_ENTRIES = [{"holder": "九樣", "drama": "小夫妻", "reviewStatus": "已審片但不評估", "rightsStatus": "電視在送審階段,還沒議價\n115/7/15審片會議不採購", "rightsColor": "green"}, {"holder": "九樣", "drama": "熾夏", "reviewStatus": "已審片但不評估", "rightsStatus": "115/07 審片會議不採購,眾評過低", "rightsColor": "green"}, {"holder": "九樣", "drama": "簡言的夏冬", "reviewStatus": "已審片但不評估", "rightsStatus": "115/7欣恬覺得太長，不評估49集還是太長, 電視可談、IPTVHami", "rightsColor": "green"}, {"holder": "九樣", "drama": "關於唐醫生的一切", "reviewStatus": "僅詢問", "rightsStatus": "2027/05/31 後電視權利 回到九樣", "rightsColor": "blue"}, {"holder": "騰訊", "drama": "閃耀的她2", "reviewStatus": "僅詢問", "rightsStatus": "還沒有東西給我們看片", "rightsColor": "red"}, {"holder": "騰訊", "drama": "迷牆", "reviewStatus": "僅詢問", "rightsStatus": "電視+MOD", "rightsColor": "green"}, {"holder": "騰訊", "drama": "人間清醒", "reviewStatus": "僅詢問", "rightsStatus": "2027年才會播", "rightsColor": "green"}, {"holder": "騰訊", "drama": "隱身的名字", "reviewStatus": "僅詢問", "rightsStatus": "電視可談、IPTV不在", "rightsColor": "green"}, {"holder": "騰訊", "drama": "有喜的日子", "reviewStatus": "僅詢問", "rightsStatus": "115/7/17電視權利+MOD可談(大陸本想今年六月播、但延後)(115/7還沒有片花，廣電尚未過審)", "rightsColor": "red"}, {"holder": "騰訊", "drama": "愛情有煙火", "reviewStatus": "已審片過", "rightsStatus": "115/08/12 審片會議副總表示再給一些評估時間,兩天內決定\n6/22騰訊請我們開價、8月重啟評估", "rightsColor": "red"}, {"holder": "騰訊", "drama": "甜小姐與冷先生", "reviewStatus": "已審片但不評估", "rightsStatus": "115/7/17電視+MOD", "rightsColor": "green"}, {"holder": "騰訊", "drama": "狙擊蝴蝶", "reviewStatus": "僅詢問", "rightsStatus": "", "rightsColor": "blue"}, {"holder": "騰訊", "drama": "他為什麼依然單身", "reviewStatus": "僅詢問", "rightsStatus": "", "rightsColor": "blue"}, {"holder": "騰訊", "drama": "三生有幸遇上你", "reviewStatus": "僅詢問", "rightsStatus": "115/6/20 陳董詢問 電視權利不在、IPTV還在 (後不考慮)", "rightsColor": "blue"}, {"holder": "浙江影視", "drama": "輸贏", "reviewStatus": "僅詢問", "rightsStatus": "115/08 欣恬問權利", "rightsColor": "green"}, {"holder": "中天", "drama": "相逢時節", "reviewStatus": "僅詢問", "rightsStatus": "115/08 欣恬 源頭是正午陽光，目前在中天，於2023年播出，在2027/2 回到正午陽光", "rightsColor": "blue"}, {"holder": "中天", "drama": "後浪", "reviewStatus": "僅詢問", "rightsStatus": "115/7/2 欣恬 源頭是耀客，權利在中天， 2028年回到耀客", "rightsColor": "blue"}, {"holder": "華策→代理商", "drama": "一路朝陽", "reviewStatus": "僅詢問", "rightsStatus": "115/08/05　問權利、出品方在華策，台灣權利授權給代理商，28年3月31就會回到華策，這部會排播時可能假定是在27年底，那實際代理商期*限也很短了,是否這部等權利回到華策時再談？(戲劇中心評估)", "rightsColor": "red"}, {"holder": "八大", "drama": "驕陽似我", "reviewStatus": "僅詢問", "rightsStatus": "電視權利八大", "rightsColor": "blue"}, {"holder": "海棠果", "drama": "誰都知道我愛你", "reviewStatus": "已審片但不評估", "rightsStatus": "電視權利可談、MOD權利在騰訊，可協調  115/07/08 審片會議不採購", "rightsColor": "blue"}, {"holder": "愛奇藝", "drama": "這一秒過火", "reviewStatus": "已審片但不評估", "rightsStatus": "115/08 郝副總不考慮", "rightsColor": "green"}, {"holder": "高點", "drama": "玫瑰之戰", "reviewStatus": "已審片過", "rightsStatus": "115/07/14 問高點負責人", "rightsColor": "blue"}, {"holder": "高點", "drama": "謝謝你醫生", "reviewStatus": "已審片過", "rightsStatus": "115/06 電視權利在高點,MOD在愛爾達已拿(已跟愛爾達談+拿)", "rightsColor": "blue"}, {"holder": "高點", "drama": "閃耀如她1", "reviewStatus": "僅詢問", "rightsStatus": "電視權利在高點", "rightsColor": "blue"}, {"holder": "高點", "drama": "凡人歌", "reviewStatus": "僅詢問", "rightsStatus": "電視權利高點", "rightsColor": "blue"}, {"holder": "芒果", "drama": "致我那菜市場的白月光", "reviewStatus": "僅詢問", "rightsStatus": "115/08 電視+MOD", "rightsColor": "green"}, {"holder": "芒果", "drama": "歡聚", "reviewStatus": "僅詢問", "rightsStatus": "115/8/10 正再問樣片,屆時再約戲劇中心看片,製作人(自賣)", "rightsColor": "red"}, {"holder": "芒果", "drama": "從結婚開始戀愛", "reviewStatus": "已審片過", "rightsStatus": "115/7/9 問", "rightsColor": "blue"}, {"holder": "愛奇藝", "drama": "我的助理不簡單", "reviewStatus": "已審片但不評估", "rightsStatus": "115/7/17 電視+MD", "rightsColor": "green"}, {"holder": "愛奇藝", "drama": "親愛的小孩", "reviewStatus": "已審片但不評估", "rightsStatus": "115/7/17問電視權利、IPTV可談,7/22審片會議不採購", "rightsColor": "green"}, {"holder": "愛奇藝", "drama": "歸路", "reviewStatus": "已審片但不評估", "rightsStatus": "115/7/2欣恬、7/08審片會議不採購、MOD權利愛爾達", "rightsColor": "green"}, {"holder": "愛奇藝", "drama": "突然的喜歡", "reviewStatus": "已審片但不評估", "rightsStatus": "電視權利騰訊、MOD在愛爾達 、115/7/1審片會議不採購", "rightsColor": "blue"}, {"holder": "愛奇藝", "drama": "不二之臣", "reviewStatus": "僅詢問", "rightsStatus": "115/08 欣恬,版權詢問", "rightsColor": "blue"}, {"holder": "愛奇藝", "drama": "歲月有情時", "reviewStatus": "僅詢問", "rightsStatus": "115/7/17MOD萬達", "rightsColor": "green"}, {"holder": "愛奇藝", "drama": "外婆的新世界", "reviewStatus": "僅詢問", "rightsStatus": "7/17電視MOD可談", "rightsColor": "green"}, {"holder": "愛奇藝", "drama": "月光變奏曲", "reviewStatus": "已審片過", "rightsStatus": "115/7/2 欣恬 MOD在龍華、7/8,待副總審片後再裁示", "rightsColor": "red"}, {"holder": "愛奇藝", "drama": "搖滾狂花", "reviewStatus": "僅詢問", "rightsStatus": "115/07 欣恬  電視權利可談", "rightsColor": "green"}];
+function uid2(p){ return p+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
+async function runExcelImport(){
+  const existingNames = new Set(state.projects.map(p=>p.name+'|'+p.holder));
+  let addedP = 0;
+  IMPORT_SEED_PROJECTS.forEach(sp=>{
+    const key = sp.name+'|'+sp.holder;
+    if(existingNames.has(key)) return;
+    const p = Object.assign({id: uid2('p')}, JSON.parse(JSON.stringify(sp)));
+    state.projects.unshift(p);
+    addedP++;
+  });
+  const existingEntries = new Set(state.entries.map(e=>e.holder+'|'+e.drama));
+  let addedE = 0;
+  IMPORT_SEED_ENTRIES.forEach(se=>{
+    const key = se.holder+'|'+se.drama;
+    if(existingEntries.has(key)) return;
+    const e = Object.assign({id: uid2('c')}, JSON.parse(JSON.stringify(se)));
+    state.entries.unshift(e);
+    addedE++;
+  });
+  await saveProjects();
+  await saveEntries();
+  state.showExcelImportConfirm = false;
+  state.excelImportResultMsg = '匯入完成：新增了 '+addedP+' 筆案件、'+addedE+' 筆版權搜尋資料（重複項目已自動略過）。';
+  render();
+}
+function toggleExcelImportConfirm(){
+  state.showExcelImportConfirm = !state.showExcelImportConfirm;
+  state.excelImportResultMsg = '';
+  render();
+}
+function renderExcelImportBox(){
+  if(state.excelImportResultMsg){
+    return `<div class="stage-note" style="margin-bottom:14px;border-left-color:var(--sage);">${esc(state.excelImportResultMsg)}</div>`;
+  }
+  if(!state.showExcelImportConfirm) return '';
+  return `
+  <div class="form-card">
+    <h3>匯入 Excel 初始資料</h3>
+    <div class="hint" style="margin-bottom:12px;">將新增 ${IMPORT_SEED_PROJECTS.length} 筆案件與 ${IMPORT_SEED_ENTRIES.length} 筆版權搜尋資料。已存在的項目名稱會自動略過，不會覆蓋現有資料，確定要匯入嗎？</div>
+    <button class="btn small" onclick="runExcelImport()">確定匯入</button>
+    <button class="btn small secondary" onclick="toggleExcelImportConfirm()">取消</button>
+  </div>`;
+}
+
+/* ---------- storage ---------- */
+function migrateProject(p){
+  if(!p.stages) p.stages = {};
+  STAGES.forEach(s=>{
+    if(!p.stages[s.key]) p.stages[s.key] = {start:null,due:null,done:false,doneDate:null,earlyCompleted:false};
+    if(p.stages[s.key].earlyCompleted===undefined) p.stages[s.key].earlyCompleted = false;
+  });
+  if(!p.rules) p.rules = {};
+  if(p.rules.materialsTiming===undefined){
+    p.rules.materialsTiming = p.rules.materialsAtFinal ? '合約審批時提供' : '';
+  }
+  if(p.rules.materialsNote===undefined) p.rules.materialsNote = '';
+  if(!p.rules.notaryRule) p.rules.notaryRule = NOTARY_RULES[0];
+  if(!p.rules.licenseRule) p.rules.licenseRule = LICENSE_RULES[0];
+  if(p.rules.licenseNote===undefined) p.rules.licenseNote = '';
+  if(!p.approvalCert) p.approvalCert = {obtained:false, source:'', note:''};
+  if(!p.masterExtraction) p.masterExtraction = {scope:'pending', note:''};
+  if(!p.licenseChain) p.licenseChain = {obtained:false};
+  if(!p.submission) p.submission = {status:'notSent', note:''};
+  if(typeof p.currentStageIndex!=='number') p.currentStageIndex = 0;
+  if(typeof p.completed!=='boolean') p.completed = false;
+  if(p.holder===undefined) p.holder = '';
+  if(p.note===undefined) p.note = '';
+  return p;
+}
+async function loadAll(){
+  try{
+    const p = await window.storage.get('projects', true);
+    state.projects = p ? JSON.parse(p.value).map(migrateProject) : [];
+  }catch(e){ state.projects = []; }
+  try{
+    const e = await window.storage.get('copyright-entries', true);
+    state.entries = e ? JSON.parse(e.value) : [];
+  }catch(e){ state.entries = []; }
+  state.loaded = true;
+  render();
+}
+async function saveProjects(){
+  try{ await window.storage.set('projects', JSON.stringify(state.projects), true); state.saveError=''; }
+  catch(e){ console.error('儲存專案失敗', e); state.saveError='儲存失敗，請稍後再試一次（資料可能尚未同步）。'; render(); }
+}
+async function saveEntries(){
+  try{ await window.storage.set('copyright-entries', JSON.stringify(state.entries), true); state.saveError=''; }
+  catch(e){ console.error('儲存版權資料失敗', e); state.saveError='儲存失敗，請稍後再試一次（資料可能尚未同步）。'; render(); }
+}
+
+/* ---------- project logic ---------- */
+function newProjectObj(d){
+  const start = d.startDate || todayStr();
+  const stages = {};
+  STAGES.forEach((s,i)=>{
+    stages[s.key] = { start: i===0?start:null, due: i===0?addDays(start,s.max):null, done:false, doneDate:null, earlyCompleted:false };
+  });
+  return {
+    id: uid('p'),
+    name: d.name,
+    holder: d.holder||'',
+    currentStageIndex: 0,
+    completed: false,
+    stages,
+    rules:{
+      materialsTiming: d.materialsTiming || '',
+      materialsNote: d.materialsNote||'',
+      notaryRule: d.notaryRule || NOTARY_RULES[0],
+      licenseRule: d.licenseRule || LICENSE_RULES[0],
+      licenseNote: d.licenseNote||'',
+    },
+    approvalCert:{ obtained:false, source:'', note:'' },
+    submission:{ status:'notSent', note:'' },
+    masterExtraction:{ scope:'pending', note:'' },
+    licenseChain:{ obtained:false },
+    note: d.note||'',
+  };
+}
+function currentStage(p){ return STAGES[p.currentStageIndex]; }
+function currentStageState(p){ return p.stages[currentStage(p).key]; }
+function activeStageEntries(p){
+  const arr = [];
+  STAGES.forEach((s,i)=>{
+    const st = p.stages[s.key];
+    if(st.start && !st.done) arr.push({idx:i, key:s.key, st});
+  });
+  return arr;
+}
+function isOverdue(p){
+  if(p.completed) return false;
+  return activeStageEntries(p).some(a=> a.st.due && todayStr() > a.st.due);
+}
+function overdueDays(p){
+  const list = activeStageEntries(p).filter(a=> a.st.due && todayStr() > a.st.due);
+  if(list.length===0) return 0;
+  return Math.max(...list.map(a=>daysBetween(a.st.due, todayStr())));
+}
+function overdueStageLabels(p){
+  return activeStageEntries(p).filter(a=> a.st.due && todayStr() > a.st.due).map(a=>STAGES[a.idx].label);
+}
+function lateFinishedStages(p){
+  const list = [];
+  STAGES.forEach((s,i)=>{
+    const st = p.stages[s.key];
+    if(st.done){
+      const prog = stageProgress(st, s);
+      if(prog.finishedLate) list.push({idx:i, label:s.label, overDays:prog.overDays});
+    }
+  });
+  return list;
+}
+function isSoon(p){
+  if(p.completed || isOverdue(p)) return false;
+  return activeStageEntries(p).some(a=>{
+    if(!a.st.due) return false;
+    const d = daysBetween(todayStr(), a.st.due);
+    return d>=0 && d<=3;
+  });
+}
+function moveToNext(p, idx, startDate){
+  startDate = startDate || todayStr();
+  if(idx+1 < STAGES.length){
+    const nextIdx = idx+1;
+    const nextKey = STAGES[nextIdx].key;
+    if(!p.stages[nextKey].start){
+      p.stages[nextKey].start = startDate;
+      p.stages[nextKey].due = addDays(startDate, STAGES[nextIdx].max);
+    }
+    p.currentStageIndex = nextIdx;
+    if(p.stages[nextKey].done){ moveToNext(p, nextIdx, startDate); } // 已提前完成（例如公證可先進行），自動接續下一階段
+  } else {
+    p.completed = true;
+  }
+}
+function advanceStage(id, customDoneDate){
+  const p = state.projects.find(x=>x.id===id);
+  if(!p) return;
+  const idx = p.currentStageIndex;
+  const key = STAGES[idx].key;
+  const doneDate = customDoneDate || todayStr();
+  p.stages[key].done = true;
+  p.stages[key].doneDate = doneDate;
+  moveToNext(p, idx, doneDate);
+  saveProjects(); render();
+}
+function toggleCompleteForm(id){
+  state.completingProjectId = state.completingProjectId===id ? null : id;
+  render();
+}
+function confirmAdvanceStage(id){
+  const input = document.getElementById('complete-date-'+id);
+  const dateVal = (input && input.value) || todayStr();
+  state.completingProjectId = null;
+  advanceStage(id, dateVal);
+}
+function startStageEarly(id, stageKey){
+  const p = state.projects.find(x=>x.id===id);
+  if(!p) return;
+  const conf = STAGES.find(x=>x.key===stageKey);
+  const s = todayStr();
+  p.stages[stageKey].start = s;
+  p.stages[stageKey].due = addDays(s, conf.max);
+  saveProjects(); render();
+}
+function completeStageEarly(id, stageKey){
+  const p = state.projects.find(x=>x.id===id);
+  if(!p) return;
+  const idx = STAGES.findIndex(x=>x.key===stageKey);
+  p.stages[stageKey].done = true;
+  p.stages[stageKey].doneDate = p.stages[stageKey].doneDate || todayStr();
+  p.stages[stageKey].earlyCompleted = true;
+  if(p.currentStageIndex === idx && !p.completed){ moveToNext(p, idx); }
+  saveProjects(); render();
+}
+function undoEarlyComplete(id, stageKey){
+  const p = state.projects.find(x=>x.id===id);
+  if(!p) return;
+  const idx = STAGES.findIndex(x=>x.key===stageKey);
+  if(idx===p.currentStageIndex) return; // 正常流程中的目前階段請用「退回上一階段」
+  p.stages[stageKey].done = false;
+  p.stages[stageKey].doneDate = null;
+  p.stages[stageKey].earlyCompleted = false;
+  saveProjects(); render();
+}
+function reopenStage(id){
+  const p = state.projects.find(x=>x.id===id);
+  if(!p) return;
+  if(p.completed){
+    p.completed = false;
+    p.currentStageIndex = STAGES.length-1;
+    const key = STAGES[p.currentStageIndex].key;
+    p.stages[key].done = false; p.stages[key].doneDate = null; p.stages[key].earlyCompleted = false;
+    saveProjects(); render(); return;
+  }
+  if(p.currentStageIndex===0) return;
+  const prevIdx = p.currentStageIndex-1;
+  const prevKey = STAGES[prevIdx].key;
+  p.stages[prevKey].done = false; p.stages[prevKey].doneDate = null; p.stages[prevKey].earlyCompleted = false;
+  const curKey = STAGES[p.currentStageIndex].key;
+  p.stages[curKey] = {start:null,due:null,done:false,doneDate:null,earlyCompleted:false};
+  p.currentStageIndex = prevIdx;
+  saveProjects(); render();
+}
+function askDeleteProject(id){ state.confirmDeleteProjectId = id; render(); }
+function cancelDeleteProject(){ state.confirmDeleteProjectId = null; render(); }
+function confirmDeleteProject(id){
+  state.projects = state.projects.filter(x=>x.id!==id);
+  if(state.selectedProjectId===id) state.selectedProjectId=null;
+  state.confirmDeleteProjectId = null;
+  saveProjects(); render();
+}
+function selectProject(id){
+  state.selectedProjectId = state.selectedProjectId===id? null : id;
+  render();
+}
+function updateStageDate(id, key, field, value){
+  const p = state.projects.find(x=>x.id===id);
+  if(!p) return;
+  p.stages[key][field] = value;
+  if(field==='start'){ p.stages[key].due = addDays(value, STAGES.find(s=>s.key===key).max); }
+  saveProjects(); render();
+}
+function updateProjectField(id, path, value){
+  const p = state.projects.find(x=>x.id===id);
+  if(!p) return;
+  const keys = path.split('.');
+  let o = p;
+  for(let i=0;i<keys.length-1;i++) o = o[keys[i]];
+  o[keys[keys.length-1]] = value;
+  saveProjects(); render();
+}
+
+function submitNewProject(){
+  const name = document.getElementById('np-name').value.trim();
+  if(!name){ state.npError='請輸入項目名稱'; render(); return; }
+  const holder = document.getElementById('np-holder').value.trim();
+  const startDate = document.getElementById('np-start').value || todayStr();
+  const materialsTiming = document.getElementById('np-materials').value;
+  const materialsNote = document.getElementById('np-materials-note').value.trim();
+  const notaryRule = document.getElementById('np-notary-rule').value;
+  const licenseRule = document.getElementById('np-license-rule').value;
+  const licenseNote = document.getElementById('np-license-note').value.trim();
+  const note = document.getElementById('np-note').value.trim();
+  const p = newProjectObj({name,holder,startDate,materialsTiming,materialsNote,notaryRule,licenseRule,licenseNote,note});
+  state.projects.unshift(p);
+  state.showNewProject = false;
+  state.npError = '';
+  saveProjects(); render();
+}
+
+/* ---------- render: shell ---------- */
+function render(){
+  const app = document.getElementById('app');
+  if(!state.loaded){ app.innerHTML = '<div class="loading">載入資料中…</div>'; return; }
+  try{
+    app.innerHTML = `
+      <div class="masthead">
+        <div>
+          <h1>版權週期管理</h1>
+          <div class="sub">合約審批 → 雙蓋 → 公證 → 送審　｜　內部案件追蹤工具</div>
+        </div>
+        <div class="stampmark">案件<br>追蹤</div>
+      </div>
+      <div class="tabs">
+        <div class="tab ${state.tab==='progress'?'active':''}" onclick="setTab('progress')">進度追蹤</div>
+        <div class="tab ${state.tab==='overview'?'active':''}" onclick="setTab('overview')">進度一覽表</div>
+        <div class="tab ${state.tab==='search'?'active':''}" onclick="setTab('search')">版權搜尋</div>
+        <div class="tab ${state.tab==='analysis'?'active':''}" onclick="setTab('analysis')">案件分析</div>
+      </div>
+      <div class="panel">
+      ${state.saveError ? `<div class="stage-note" style="border-color:var(--seal);color:var(--seal);margin-bottom:14px;">${esc(state.saveError)}</div>` : ''}
+      ${
+        state.tab==='progress' ? renderProgressTab() :
+        state.tab==='overview' ? renderOverviewTab() :
+        state.tab==='search' ? renderSearchTab() :
+        renderAnalysisTab()
+      }</div>
+    `;
+  }catch(err){
+    console.error('畫面繪製失敗', err);
+    app.innerHTML = `
+      <div class="masthead"><div><h1>版權週期管理</h1></div></div>
+      <div class="panel">
+        <div class="stage-note" style="border-color:var(--seal);color:var(--seal);">
+          畫面顯示時發生錯誤：${esc(err && err.message || String(err))}<br>
+          請重新整理頁面再試一次；若持續發生，資料本身仍安全保存，可以回報這個錯誤訊息。
+        </div>
+        <div style="margin-top:12px;"><button class="btn" onclick="setTab('progress')">回到進度追蹤</button></div>
+      </div>
+    `;
+  }
+}
+function setTab(t){ state.tab=t; render(); }
+
+/* ---------- Tab 1: progress ---------- */
+function renderProgressTab(){
+  const overdueCount = state.projects.filter(isOverdue).length;
+  const soonCount = state.projects.filter(isSoon).length;
+  const doneCount = state.projects.filter(p=>p.completed).length;
+  const sorted = [...state.projects].sort((a,b)=>{
+    const ao = isOverdue(a), bo = isOverdue(b);
+    if(ao!==bo) return ao?-1:1;
+    if(a.completed!==b.completed) return a.completed?1:-1;
+    const ad = currentStageState(a)?.due || '9999', bd = currentStageState(b)?.due || '9999';
+    return ad.localeCompare(bd);
+  });
+  return `
+    <div class="summary-bar">
+      <div class="sum-chip"><div class="n">${state.projects.length}</div><div class="l">總案件數</div></div>
+      <div class="sum-chip overdue"><div class="n">${overdueCount}</div><div class="l">已超過期限</div></div>
+      <div class="sum-chip soon"><div class="n">${soonCount}</div><div class="l">3天內到期</div></div>
+      <div class="sum-chip done"><div class="n">${doneCount}</div><div class="l">已完成送審</div></div>
+    </div>
+    <div class="toolbar">
+      <h2>案件清單</h2>
+      <button class="btn" onclick="toggleNewProject()">${state.showNewProject?'取消':'+ 新增案件'}</button>
+      <button class="btn secondary" onclick="toggleExcelImportConfirm()">匯入 Excel 初始資料</button>
+    </div>
+    ${renderExcelImportBox()}
+    ${state.showNewProject ? renderNewProjectForm() : ''}
+    <div class="proj-list">
+      ${sorted.length===0 ? '<div class="empty">目前沒有案件，點選「+ 新增案件」開始追蹤。</div>' :
+        sorted.map(p=>renderProjectCard(p)).join('')}
+    </div>
+  `;
+}
+function toggleNewProject(){ state.showNewProject=!state.showNewProject; render(); }
+function renderNewProjectForm(){
+  return `
+  <div class="form-card">
+    <h3>新增案件</h3>
+    <div class="grid2">
+      <div class="field"><label>項目名稱</label><input id="np-name" placeholder="例如：我是誰"></div>
+      <div class="field"><label>版權方</label><input id="np-holder" placeholder="例如：芒果TV"></div>
+    </div>
+    <div class="grid2">
+      <div class="field"><label>合約審批起算日</label><input type="date" id="np-start" value="${todayStr()}"></div>
+      <div class="field"><label>公證規則</label>
+        <select id="np-notary-rule">${NOTARY_RULES.map(r=>`<option>${r}</option>`).join('')}</select>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="field"><label>授權鏈＆發行許可證 提供時機</label>
+        <select id="np-license-rule">${LICENSE_RULES.map(r=>`<option>${r}</option>`).join('')}</select>
+        <input id="np-license-note" placeholder="備註（選填）" style="margin-top:6px;">
+      </div>
+      <div class="field">
+        <label>素材提供時機</label>
+        <select id="np-materials">
+          <option value="">尚未設定</option>
+          ${MATERIALS_TIMING_OPTIONS.map(o=>`<option>${o}</option>`).join('')}
+        </select>
+        <input id="np-materials-note" placeholder="例如：可提供前5集素材" style="margin-top:6px;">
+      </div>
+    </div>
+    <div class="field"><label>備註</label><textarea id="np-note" rows="2" placeholder="其他備註（選填）"></textarea></div>
+    ${state.npError ? `<div class="hint" style="color:var(--seal);">${esc(state.npError)}</div>` : ''}
+    <button class="btn" onclick="submitNewProject()">建立案件</button>
+  </div>`;
+}
+function renderProjectCard(p){
+  const overdue = isOverdue(p);
+  const soon = isSoon(p);
+  const stLabel = p.completed ? '已完成' : currentStage(p).label;
+  const badgeClass = p.completed ? 'done' : overdue ? 'overdue' : 'active';
+  const st = currentStageState(p);
+  let metaText = '';
+  if(p.completed){ metaText = '全部階段已完成'; }
+  else if(st){
+    metaText = overdue
+      ? `<span class="warn-inline">已超過「${overdueStageLabels(p).join('、')}」期限 ${overdueDays(p)} 天</span>`
+      : `目前處於「${currentStage(p).label}」，預計 ${fmt(st.due)} 前完成${soon?'（即將到期）':''}`;
+  }
+  return `
+  <div class="proj-card ${state.selectedProjectId===p.id?'selected':''} ${overdue?'is-overdue':''}" onclick="selectProject('${p.id}')">
+    <div class="proj-top">
+      <div>
+        <div class="proj-name">${esc(p.name)}</div>
+        <div class="proj-holder">${esc(p.holder)||'（未填版權方）'}</div>
+      </div>
+      <span class="stage-badge ${badgeClass}">${stLabel}</span>
+    </div>
+    <div class="proj-meta">${metaText}</div>
+    ${state.selectedProjectId===p.id ? renderProjectDetail(p) : ''}
+  </div>`;
+}
+function renderProjectDetail(p){
+  return `
+  <div class="detail" onclick="event.stopPropagation()">
+    <div class="timeline">
+      ${STAGES.map((s,i)=>renderStageRow(p,s,i)).join('')}
+    </div>
+    <div class="badge-row">
+      <div class="info-badge">
+        <b>准播證</b>
+        <label style="display:inline;"><input type="checkbox" style="width:auto;" ${p.approvalCert.obtained?'checked':''}
+          onchange="updateProjectField('${p.id}','approvalCert.obtained', this.checked)"> 是否取得</label><br>
+        <select style="margin-top:6px;" onchange="updateProjectField('${p.id}','approvalCert.source', this.value)">
+          <option value="" ${p.approvalCert.source===''?'selected':''}>尚未取得</option>
+          ${APPROVAL_SOURCES.map(r=>`<option value="${r}" ${p.approvalCert.source===r?'selected':''}>${r}</option>`).join('')}
+        </select>
+      </div>
+      <div class="info-badge">
+        <b>正片提取</b>
+        <select onchange="updateProjectField('${p.id}','masterExtraction.scope', this.value)">
+          <option value="pending" ${p.masterExtraction.scope==='pending'?'selected':''}>尚未</option>
+          <option value="full" ${p.masterExtraction.scope==='full'?'selected':''}>全集</option>
+          <option value="partial" ${p.masterExtraction.scope==='partial'?'selected':''}>部分集數</option>
+        </select>
+        <input style="margin-top:6px;" placeholder="說明，如：僅前3集" value="${esc(p.masterExtraction.note)}"
+          onchange="updateProjectField('${p.id}','masterExtraction.note', this.value)">
+      </div>
+      <div class="info-badge">
+        <b>授權鏈＆發行許可證</b>
+        <select onchange="updateProjectField('${p.id}','rules.licenseRule', this.value)">
+          ${LICENSE_RULES.map(r=>`<option ${p.rules.licenseRule===r?'selected':''}>${r}</option>`).join('')}
+        </select>
+        <label style="display:inline;margin-top:6px;"><input type="checkbox" style="width:auto;" ${p.licenseChain.obtained?'checked':''}
+          onchange="updateProjectField('${p.id}','licenseChain.obtained', this.checked)"> 已取得</label>
+        <input style="margin-top:6px;" placeholder="備註（選填）" value="${esc(p.rules.licenseNote||'')}"
+          onchange="updateProjectField('${p.id}','rules.licenseNote', this.value)">
+      </div>
+      <div class="info-badge">
+        <b>公證規則</b>
+        <select onchange="updateProjectField('${p.id}','rules.notaryRule', this.value)">
+          ${NOTARY_RULES.map(r=>`<option ${p.rules.notaryRule===r?'selected':''}>${r}</option>`).join('')}
+        </select>
+      </div>
+      <div class="info-badge">
+        <b>素材提供時機</b>
+        <select onchange="updateProjectField('${p.id}','rules.materialsTiming', this.value)">
+          <option value="" ${p.rules.materialsTiming===''?'selected':''}>尚未設定</option>
+          ${MATERIALS_TIMING_OPTIONS.map(o=>`<option ${p.rules.materialsTiming===o?'selected':''}>${o}</option>`).join('')}
+        </select>
+        <input style="margin-top:6px;" placeholder="說明" value="${esc(p.rules.materialsNote)}"
+          onchange="updateProjectField('${p.id}','rules.materialsNote', this.value)">
+      </div>
+    </div>
+    ${p.note ? `<div class="stage-note" style="margin-bottom:12px;">備註：${esc(p.note)}</div>` : ''}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      ${!p.completed ? (
+        state.completingProjectId===p.id ? `
+          <span style="display:inline-flex;gap:6px;align-items:center;flex-wrap:wrap;">
+            <label style="margin:0;">完成日期：</label>
+            <input type="date" id="complete-date-${p.id}" value="${todayStr()}" style="width:150px;display:inline-block;">
+            <button class="btn small" onclick="confirmAdvanceStage('${p.id}')">確認完成，進入下一階段</button>
+            <button class="btn small secondary" onclick="toggleCompleteForm('${p.id}')">取消</button>
+          </span>
+        ` : `<button class="btn small" onclick="toggleCompleteForm('${p.id}')">完成「${currentStage(p).label}」並進入下一階段</button>`
+      ) : ''}
+      ${(p.completed || p.currentStageIndex>0) ? `<button class="btn small secondary" onclick="reopenStage('${p.id}')">退回上一階段</button>` : ''}
+      ${state.confirmDeleteProjectId===p.id ? `
+        <span style="font-size:12.5px;color:var(--seal);align-self:center;">確定要刪除「${esc(p.name)}」嗎？此動作無法復原。</span>
+        <button class="btn small danger" onclick="confirmDeleteProject('${p.id}')">確定刪除</button>
+        <button class="btn small secondary" onclick="cancelDeleteProject()">取消</button>
+      ` : `<button class="btn small danger" onclick="askDeleteProject('${p.id}')">刪除案件</button>`}
+    </div>
+  </div>`;
+}
+function renderStageRow(p, s, i){
+  const st = p.stages[s.key];
+  const isCurrent = !p.completed && i===p.currentStageIndex;
+  const prog = stageProgress(st, s);
+  const overdue = st.start && !st.done && prog.overdue;
+  let stampClass = 'pending';
+  let stampText = '待進行';
+  if(st.done){ stampClass='done'; stampText='完成'; }
+  else if(overdue){ stampClass='overdue'; stampText='逾期'; }
+  else if(st.start){ stampClass='active'; stampText = isCurrent ? '進行中' : '提前進行中'; }
+
+  const canPrestart = s.key==='notarization' && p.rules.notaryRule==='可先進行';
+
+  let note = '';
+  if(s.key==='notarization'){
+    note = canPrestart
+      ? '本階段規則：可先進行，公證不需等待合約審批與雙蓋完成即可開始。'
+      : `本階段規則：合約${p.rules.notaryRule}方可進行公證。`;
+  }
+  if(s.key==='submission'){ note = `送審需待公證完成後方可進行；准播證${p.approvalCert.obtained?('已取得（'+ (p.approvalCert.source||'來源未填') +'）'):'尚未取得'}。`; }
+
+  const dateInputs = st.start!=null || isCurrent ? `
+    <div class="stage-dates">
+      起算：<input type="date" style="width:130px;display:inline-block;padding:2px 6px;" value="${st.start||''}"
+        onchange="updateStageDate('${p.id}','${s.key}','start', this.value)">
+      　期限：<span class="${overdue?'warn-inline':''}">${fmt(st.due)}</span>
+      ${overdue ? `<span class="warn-inline">（已超過 ${overdueDays(p)} 天）</span>` : ''}
+      ${st.done ? `　完成日：${fmt(st.doneDate)}` : ''}
+    </div>` : `<div class="stage-dates">尚未開始</div>`;
+
+  let progressLine = '';
+  if(prog.started){
+    if(st.done){
+      if(prog.finishedLate){
+        progressLine = `<div class="stage-dates warn-inline" style="margin-top:2px;">已完成，歷時 <b>${prog.elapsed}</b> 天（超過期限 ${prog.overDays} 天完成）${st.earlyCompleted?'　<span style="color:var(--brass-dim);">（提前完成）</span>':''}</div>`;
+      } else {
+        progressLine = `<div class="stage-dates" style="margin-top:2px;">已完成，歷時 <b>${prog.elapsed}</b> 天${st.earlyCompleted?'　<span style="color:var(--brass-dim);">（提前完成）</span>':''}</div>`;
+      }
+    } else if(prog.overdue){
+      progressLine = `<div class="stage-dates warn-inline" style="margin-top:2px;">已經過 ${prog.elapsed} 天，已逾期 ${prog.overDays} 天（預估時程為 ${s.min===s.max? s.min : s.min+'～'+s.max}天）</div>`;
+    } else {
+      progressLine = `<div class="stage-dates" style="margin-top:2px;">已經過 <b>${prog.elapsed}</b> 天，預估還需 <b>${prog.remainMin}～${prog.remainMax}</b> 天</div>`;
+    }
+  }
+
+  let earlyControls = '';
+  if(canPrestart && !p.completed){
+    if(!st.start){
+      earlyControls = `<div style="margin-top:8px;"><button class="btn small" onclick="startStageEarly('${p.id}','${s.key}')">提前開始公證</button></div>`;
+    } else if(!st.done && !isCurrent){
+      earlyControls = `<div style="margin-top:8px;"><button class="btn small" onclick="completeStageEarly('${p.id}','${s.key}')">標記公證完成（提前）</button></div>`;
+    } else if(st.done && !isCurrent){
+      earlyControls = `<div style="margin-top:8px;"><button class="btn small secondary" onclick="undoEarlyComplete('${p.id}','${s.key}')">撤銷提前完成</button></div>`;
+    }
+  }
+
+  let submissionControls = '';
+  if(s.key==='submission' && (st.start!=null || isCurrent)){
+    submissionControls = `
+    <div style="margin-top:8px;">
+      <label style="margin-bottom:4px;">送審狀態</label>
+      <select style="width:auto;display:inline-block;" onchange="updateProjectField('${p.id}','submission.status', this.value)">
+        ${SUBMISSION_STATUSES.map(o=>`<option value="${o.v}" ${p.submission.status===o.v?'selected':''}>${o.l}</option>`).join('')}
+      </select>
+      <input style="margin-top:6px;" placeholder="備註（選填）" value="${esc(p.submission.note||'')}"
+        onchange="updateProjectField('${p.id}','submission.note', this.value)">
+    </div>`;
+  }
+
+  return `
+  <div class="stage-row">
+    <div class="stamp ${stampClass}">${s.label}</div>
+    <div class="stage-body">
+      <div class="stage-head">
+        <div class="name">${s.label} <span style="font-weight:400;font-size:12px;color:var(--slate);">（${s.min===s.max? s.min+'天' : s.min+'–'+s.max+'天'}）</span></div>
+        <span class="stage-badge ${stampClass}">${stampText}</span>
+      </div>
+      ${dateInputs}
+      ${progressLine}
+      ${note ? `<div class="stage-note">${note}</div>` : ''}
+      ${earlyControls}
+      ${submissionControls}
+    </div>
+  </div>`;
+}
+
+/* ---------- Tab 2: overview table ---------- */
+function renderOverviewTab(){
+  const rows = [...state.projects].sort((a,b)=>{
+    const aInSubmission = !a.completed && currentStage(a).key==='submission';
+    const bInSubmission = !b.completed && currentStage(b).key==='submission';
+    const aFlag = !aInSubmission && (isOverdue(a) || (!a.completed && lateFinishedStages(a).length>0));
+    const bFlag = !bInSubmission && (isOverdue(b) || (!b.completed && lateFinishedStages(b).length>0));
+    if(aFlag!==bFlag) return aFlag?-1:1;
+    if(a.completed!==b.completed) return a.completed?1:-1;
+    const ad=currentStageState(a)?.due||'9999', bd=currentStageState(b)?.due||'9999';
+    return ad.localeCompare(bd);
+  });
+  return `
+    <div class="toolbar"><h2>進度一覽表</h2>
+      <div class="sub" style="font-size:12px;color:var(--slate);">此頁彙整所有案件目前狀態，適合分享給主管快速掌握進度。</div>
+    </div>
+    <div style="overflow-x:auto;">
+    <table>
+      <thead><tr>
+        <th>項目名稱</th><th>版權方</th><th>目前階段</th><th>期限</th><th>狀態</th>
+        <th>准播證</th><th>正片提取</th><th>授權鏈規則</th>
+      </tr></thead>
+      <tbody>
+      ${rows.length===0? `<tr><td colspan="8" class="empty">尚無案件資料</td></tr>` : rows.map(p=>{
+        const overdue = isOverdue(p), soon = isSoon(p);
+        const late = p.completed ? [] : lateFinishedStages(p);
+        const inSubmission = !p.completed && currentStage(p).key==='submission';
+        const cls = p.completed ? 'row-done' : inSubmission ? '' : overdue ? 'row-overdue' : late.length? 'row-overdue' : soon ? 'row-soon' : '';
+        const st = currentStageState(p);
+        let statusText;
+        if(p.completed) statusText = `<span class="pill green">已完成</span>`;
+        else if(inSubmission){
+          const notarDone = p.stages.notarization.doneDate;
+          const daysSinceNotar = notarDone ? daysBetween(notarDone, todayStr()) : null;
+          statusText = `<span class="pill gray">送審中</span><br><span style="font-size:11px;color:var(--ink-700);">送審狀態：${submissionLabel(p.submission.status)}${p.submission.note?'｜'+esc(p.submission.note):''}</span>`;
+          if(daysSinceNotar!==null){
+            statusText += `<br><span style="font-size:11px;color:var(--ink-700);">距離公證完成時間已 ${daysSinceNotar} 天</span>`;
+          }
+        }
+        else if(overdue){
+          const nextIdx = p.currentStageIndex+1;
+          const nextLabel = STAGES[nextIdx].label;
+          statusText = `<span class="pill red">逾期 ${overdueDays(p)} 天</span><br><span class="warn-inline" style="font-size:11.5px;">下個階段（${nextLabel}）須加速</span>`;
+        }
+        else if(late.length){
+          const last = late[late.length-1];
+          const curLabel = currentStage(p).label;
+          statusText = `<span class="pill red">上階段逾期 ${last.overDays} 天</span><br><span class="warn-inline" style="font-size:11.5px;">${curLabel}須加速，上階段（${last.label}）逾期 ${last.overDays} 天</span>`;
+        }
+        else if(soon) statusText = `<span class="pill amber">${daysBetween(todayStr(), st.due)} 天內到期</span>`;
+        else statusText = `<span class="pill gray">正常</span>`;
+        return `<tr class="${cls}">
+          <td><b>${esc(p.name)}</b></td>
+          <td>${esc(p.holder)||'—'}</td>
+          <td>${p.completed?'已完成':currentStage(p).label}</td>
+          <td>${p.completed?'—':fmt(st.due)}</td>
+          <td>${statusText}</td>
+          <td>${p.approvalCert.obtained? ('已取得｜'+(p.approvalCert.source||'—')) : '未取得'}</td>
+          <td>${p.masterExtraction.scope==='pending' ? '尚未' : p.masterExtraction.scope==='full'?'全集':('部分：'+(esc(p.masterExtraction.note)||'未說明'))}${p.rules.materialsTiming ? `<br><span style="font-size:11px;color:var(--brass-dim);">${esc(p.rules.materialsTiming)}${p.rules.materialsNote?'：'+esc(p.rules.materialsNote):''}</span>` : ''}</td>
+          <td>${esc(p.rules.licenseRule)}${p.licenseChain.obtained ? `<br><span style="font-size:11px;color:var(--sage);">已取得</span>` : `<br><span style="font-size:11px;color:var(--slate);">尚未取得</span>`}${p.rules.licenseNote ? `<br><span style="font-size:11px;color:var(--slate);">${esc(p.rules.licenseNote)}</span>` : ''}</td>
+        </tr>`;
+      }).join('')}
+      </tbody>
+    </table>
+    </div>
+  `;
+}
+
+/* ---------- Tab 3: search ---------- */
+const SYNONYMS = {'待確認':'僅詢問'};
+function colorLabel(c){ const f=COLOR_OPTIONS.find(x=>x.v===c); return f?f.l:''; }
+function matchesQuery(entry, qRaw){
+  const q = (qRaw||'').trim();
+  if(!q) return true;
+  if(SYNONYMS[q] && entry.reviewStatus===SYNONYMS[q]) return true;
+  const hay = [entry.holder, entry.drama, entry.reviewStatus, entry.rightsStatus, colorLabel(entry.rightsColor)].join(' ');
+  return hay.includes(q);
+}
+function toggleNewEntry(){ state.showNewEntry=!state.showNewEntry; state.editEntryId=null; render(); }
+function editEntry(id){ state.editEntryId=id; state.showNewEntry=false; render(); }
+function submitEntry(existingId){
+  const holder = document.getElementById('ne-holder').value.trim();
+  const drama = document.getElementById('ne-drama').value.trim();
+  const reviewStatus = document.getElementById('ne-review').value;
+  const rightsStatus = document.getElementById('ne-rights').value.trim();
+  let rightsColor = document.getElementById('ne-color').value;
+  if(/到期/.test(rightsStatus) && !/未到期/.test(rightsStatus)){ rightsColor = 'amber'; }
+  if(!holder || !drama){ state.neError='請輸入版權方與戲劇項目名稱'; render(); return; }
+  if(existingId){
+    const e = state.entries.find(x=>x.id===existingId);
+    Object.assign(e,{holder,drama,reviewStatus,rightsStatus,rightsColor});
+    state.editEntryId = null;
+  } else {
+    state.entries.unshift({id:uid('c'),holder,drama,reviewStatus,rightsStatus,rightsColor});
+    state.showNewEntry = false;
+  }
+  state.neError = '';
+  saveEntries(); render();
+}
+function askDeleteEntry(id){ state.confirmDeleteEntryId = id; render(); }
+function cancelDeleteEntry(){ state.confirmDeleteEntryId = null; render(); }
+function confirmDeleteEntry(id){
+  state.entries = state.entries.filter(x=>x.id!==id);
+  state.confirmDeleteEntryId = null;
+  saveEntries(); render();
+}
+function setSearch(v){ state.searchQuery=v; render(); }
+function autoTagRights(text){
+  const sel = document.getElementById('ne-color');
+  if(!sel) return;
+  if(/到期/.test(text) && !/未到期/.test(text)){ sel.value = 'amber'; }
+}
+function renderSearchRows(filtered){
+  if(filtered.length===0){
+    return `<tr><td colspan="5" class="empty">${state.entries.length===0?'尚無資料，請先新增版權資料。':'查無符合的結果'}</td></tr>`;
+  }
+  return filtered.map(e=>`
+    <tr class="${e.reviewStatus==='已審片但不評估'?'row-notpursued':''}">
+      <td>${esc(e.holder)}</td>
+      <td><b>${esc(e.drama)}</b></td>
+      <td>${e.reviewStatus}</td>
+      <td><span class="pill ${e.rightsColor}">${colorLabel(e.rightsColor)}</span><br>
+        <span style="font-size:12px;color:var(--ink-700);">${esc(e.rightsStatus)||'—'}</span></td>
+      <td class="search-row-actions">
+        ${state.confirmDeleteEntryId===e.id ? `
+          <button class="btn small danger" onclick="confirmDeleteEntry('${e.id}')">確定刪除</button>
+          <button class="btn small secondary" onclick="cancelDeleteEntry()">取消</button>
+        ` : `
+          <button class="btn small secondary" onclick="editEntry('${e.id}')">編輯</button>
+          <button class="btn small danger" onclick="askDeleteEntry('${e.id}')">刪除</button>
+        `}
+      </td>
+    </tr>`).join('');
+}
+function onSearchInput(v){
+  state.searchQuery = v;
+  const filtered = state.entries.filter(e=>matchesQuery(e, state.searchQuery));
+  const tbody = document.getElementById('search-tbody');
+  if(tbody) tbody.innerHTML = renderSearchRows(filtered);
+}
+function renderEntryForm(existing){
+  const e = existing || {holder:'',drama:'',reviewStatus:REVIEW_STATUSES[0],rightsStatus:'',rightsColor:'blue'};
+  return `
+  <div class="form-card">
+    <h3>${existing?'編輯版權資料':'新增版權資料'}</h3>
+    <div class="grid2">
+      <div class="field"><label>版權方</label><input id="ne-holder" value="${esc(e.holder)}" placeholder="例如：芒果TV"></div>
+      <div class="field"><label>戲劇項目</label><input id="ne-drama" value="${esc(e.drama)}" placeholder="例如：我是誰"></div>
+    </div>
+    <div class="grid2">
+      <div class="field"><label>審片狀態</label>
+        <select id="ne-review">${REVIEW_STATUSES.map(r=>`<option ${e.reviewStatus===r?'selected':''}>${r}</option>`).join('')}</select>
+      </div>
+      <div class="field"><label>權利狀態標籤</label>
+        <select id="ne-color">${COLOR_OPTIONS.map(c=>`<option value="${c.v}" ${e.rightsColor===c.v?'selected':''}>${c.l}</option>`).join('')}</select>
+      </div>
+    </div>
+    <div class="field"><label>權利狀態說明</label><textarea id="ne-rights" rows="2" placeholder="例如：權利在對方手中，2027年到期" oninput="autoTagRights(this.value)">${esc(e.rightsStatus)}</textarea></div>
+    <div class="hint">提示：說明欄若寫到「⋯到期」（非「未到期」），標籤會自動改成「即將到期」。</div>
+    ${state.neError ? `<div class="hint" style="color:var(--seal);">${esc(state.neError)}</div>` : ''}
+    <button class="btn" onclick="submitEntry(${existing?`'${existing.id}'`:'null'})">${existing?'儲存變更':'新增'}</button>
+    <button class="btn secondary" onclick="${existing?`(function(){state.editEntryId=null;render();})()`:'toggleNewEntry()'}">取消</button>
+  </div>`;
+}
+function renderSearchTab(){
+  const holders = [...new Set(state.entries.map(e=>e.holder))].filter(Boolean).sort();
+  const filtered = state.entries.filter(e=>matchesQuery(e, state.searchQuery));
+  const quickKeywords = ['僅詢問','可洽談'];
+  return `
+    <div class="toolbar">
+      <h2>版權搜尋</h2>
+      <button class="btn" onclick="toggleNewEntry()">${state.showNewEntry?'取消':'+ 新增版權資料'}</button>
+    </div>
+    ${state.showNewEntry ? renderEntryForm(null) : ''}
+    ${state.editEntryId ? renderEntryForm(state.entries.find(x=>x.id===state.editEntryId)) : ''}
+    <div class="field">
+      <input id="search-input" placeholder="搜尋戲劇項目、版權方，或狀態關鍵字（如：未到期、待確認、已審片但不評估）"
+        value="${esc(state.searchQuery)}" oninput="onSearchInput(this.value)">
+    </div>
+    <div class="holder-chips">
+      ${quickKeywords.map(k=>`<div class="holder-chip" onclick="setSearch('${k}')">${k}</div>`).join('')}
+      ${holders.map(h=>`<div class="holder-chip" onclick="setSearch('${esc(h).replace(/'/g,"\\'")}')">${esc(h)}</div>`).join('')}
+    </div>
+    <div style="overflow-x:auto;">
+    <table>
+      <thead><tr><th>版權方</th><th>戲劇項目</th><th>審片狀態</th><th>權利狀態</th><th></th></tr></thead>
+      <tbody id="search-tbody">
+      ${renderSearchRows(filtered)}
+      </tbody>
+    </table>
+    </div>
+  `;
+}
+
+/* ---------- Tab 4: analysis ---------- */
+const STAGE_CHART_COLORS = {
+  contractFinal: '#8C8272',   // 合約審批：燕麥灰
+  dualSign:      '#6E7A68',   // 雙蓋：鼠尾草綠
+  notarization:  '#8B6F5C',   // 公證：赤陶棕
+  submission:    '#5C6B78',   // 送審：石板藍灰
+};
+function stageElapsedDays(p, s){
+  const st = p.stages[s.key];
+  if(!st.start) return 0;
+  const end = st.done ? st.doneDate : todayStr();
+  return Math.max(0, daysBetween(st.start, end));
+}
+function computeStageTotals(){
+  const totals = {}; const counts = {};
+  STAGES.forEach(s=>{ totals[s.key]=0; counts[s.key]=0; });
+  state.projects.forEach(p=>{
+    STAGES.forEach(s=>{
+      if(p.stages[s.key].start){
+        const d = stageElapsedDays(p, s);
+        totals[s.key] += d;
+        counts[s.key] += 1;
+      }
+    });
+  });
+  return {totals, counts};
+}
+function computeBottlenecks(){
+  return state.projects.map(p=>{
+    let maxDays=-1, maxKey=null;
+    STAGES.forEach(s=>{
+      if(p.stages[s.key].start){
+        const d = stageElapsedDays(p, s);
+        if(d>maxDays){ maxDays=d; maxKey=s.key; }
+      }
+    });
+    if(!maxKey) return null;
+    const sConf = STAGES.find(s=>s.key===maxKey);
+    return {
+      id:p.id, name:p.name, holder:p.holder, completed:p.completed,
+      stageKey:maxKey, stageLabel:sConf.label, days:maxDays,
+      overExpected: maxDays > sConf.max ? maxDays - sConf.max : 0,
+    };
+  }).filter(Boolean).sort((a,b)=>b.days-a.days);
+}
+function renderAnalysisTab(){
+  if(state.projects.length===0){
+    return `
+    <div class="toolbar"><h2>案件分析</h2></div>
+    <div class="empty">尚無案件資料，先到「進度追蹤」建立案件後，這裡會自動統計每個階段耗時最長的地方。</div>`;
+  }
+  const {totals, counts} = computeStageTotals();
+  const grandTotal = STAGES.reduce((sum,s)=>sum+totals[s.key], 0);
+  const bottlenecks = computeBottlenecks();
+
+  // donut chart via conic-gradient
+  let acc = 0;
+  const segments = STAGES.map(s=>{
+    const pct = grandTotal>0 ? (totals[s.key]/grandTotal*100) : 0;
+    const seg = {key:s.key, from:acc, to:acc+pct, pct};
+    acc += pct;
+    return seg;
+  });
+  const gradientStops = grandTotal>0
+    ? segments.filter(s=>s.pct>0).map(s=>`${STAGE_CHART_COLORS[s.key]} ${s.from.toFixed(2)}% ${s.to.toFixed(2)}%`).join(', ')
+    : `${'var(--slate-bg)'} 0% 100%`;
+
+  const bottleneckStageKey = STAGES.reduce((best,s)=> totals[s.key]>totals[best]?s.key:best, STAGES[0].key);
+  const bottleneckStageLabel = STAGES.find(s=>s.key===bottleneckStageKey).label;
+  const bottleneckAvg = counts[bottleneckStageKey]>0 ? Math.round(totals[bottleneckStageKey]/counts[bottleneckStageKey]) : 0;
+
+  const maxBarDays = bottlenecks.length ? bottlenecks[0].days : 1;
+
+  return `
+    <div class="toolbar">
+      <h2>案件分析</h2>
+      <div class="sub" style="font-size:12px;color:var(--slate);">統計所有案件在各階段累計花費的天數，找出整體流程最容易卡關的地方。</div>
+    </div>
+    <div class="summary-bar">
+      <div class="sum-chip"><div class="n">${state.projects.length}</div><div class="l">分析案件數</div></div>
+      <div class="sum-chip overdue"><div class="n">${bottleneckStageLabel}</div><div class="l">整體最大瓶頸階段</div></div>
+      <div class="sum-chip soon"><div class="n">${bottleneckAvg}</div><div class="l">該階段平均耗時（天／案）</div></div>
+    </div>
+
+    <div class="analysis-grid">
+      <div class="donut-wrap">
+        <div class="donut" style="background:conic-gradient(${gradientStops});"></div>
+        <div class="donut-center">
+          <div class="num">${grandTotal}</div>
+          <div class="lbl">累計耗時（天）<br>四階段合計</div>
+        </div>
+      </div>
+      <div class="legend">
+        ${STAGES.map(s=>{
+          const pct = grandTotal>0 ? (totals[s.key]/grandTotal*100) : 0;
+          const avg = counts[s.key]>0 ? Math.round(totals[s.key]/counts[s.key]) : 0;
+          return `
+          <div class="legend-item">
+            <span class="legend-swatch" style="background:${STAGE_CHART_COLORS[s.key]};"></span>
+            <div class="li-main">
+              <div><b>${s.label}</b>　${pct.toFixed(0)}%（累計 ${totals[s.key]} 天）</div>
+              <div class="li-sub">${counts[s.key]} 個案件曾進入此階段，平均 ${avg} 天／案（預估時程 ${s.min===s.max? s.min : s.min+'～'+s.max} 天）</div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
+
+    <div class="toolbar"><h2 style="font-size:16px;">各案件卡最久的階段</h2></div>
+    <div>
+      ${bottlenecks.length===0 ? '<div class="empty">尚無足夠資料可分析。</div>' : bottlenecks.map((b,i)=>`
+        <div class="bottleneck-row">
+          <div class="bottleneck-rank">#${i+1}</div>
+          <div style="min-width:150px;max-width:220px;">
+            <div style="font-weight:600;">${esc(b.name)}</div>
+            <div style="font-size:11px;color:var(--slate);">${esc(b.holder)||'—'}　｜　卡在「${b.stageLabel}」${b.completed?'（已完成）':''}</div>
+          </div>
+          <div class="bottleneck-bar-track">
+            <div class="bottleneck-bar-fill" style="width:${maxBarDays>0? (b.days/maxBarDays*100):0}%;background:${STAGE_CHART_COLORS[b.stageKey]};"></div>
+          </div>
+          <div class="bottleneck-days ${b.overExpected>0?'warn-inline':''}">${b.days} 天${b.overExpected>0?`<br><span style="font-size:10.5px;">超時${b.overExpected}天</span>`:''}</div>
+        </div>
+      `).join('')}
+    </div>
+  `;
+}
+
+function isEditingSomething(){
+  return !!(state.showNewProject || state.showNewEntry || state.editEntryId ||
+    state.completingProjectId || state.confirmDeleteProjectId || state.confirmDeleteEntryId ||
+    state.showExcelImportConfirm);
+}
+function startAutoRefresh(){
+  setInterval(async ()=>{
+    if(isEditingSomething()) return; // 避免在填寫表單時被別人的更新蓋掉畫面
+    try{
+      const p = await window.storage.get('projects', true);
+      const fresh = p ? JSON.parse(p.value).map(migrateProject) : [];
+      if(JSON.stringify(fresh) !== JSON.stringify(state.projects)){
+        state.projects = fresh;
+        if(state.tab==='progress' || state.tab==='overview' || state.tab==='analysis') render();
+      }
+    }catch(e){ /* 暫時取得失敗就略過，下一輪再試 */ }
+    try{
+      const e = await window.storage.get('copyright-entries', true);
+      const fresh = e ? JSON.parse(e.value) : [];
+      if(JSON.stringify(fresh) !== JSON.stringify(state.entries)){
+        state.entries = fresh;
+        if(state.tab==='search') render();
+      }
+    }catch(e){ /* 忽略 */ }
+  }, 12000);
+}
+
+loadAll();
+</script>
+
+<!-- ==================== Firebase 雲端資料庫連線設定 ==================== -->
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+  import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+  // 您的專屬 Firebase 金鑰
+  const firebaseConfig = {
+    apiKey: "AIzaSyDvzmWX8grZh5wcqTaVq0SqTPgD1Iklf4w",
+    authDomain: "rights-lifecycle-management.firebaseapp.com",
+    projectId: "rights-lifecycle-management",
+    storageBucket: "rights-lifecycle-management.firebasestorage.app",
+    messagingSenderId: "687884706442",
+    appId: "1:687884706442:web:40c1cc098ca9ab7d998373",
+    measurementId: "G-7M288KVVFD"
+  };
+
+  // 初始化 Firebase
+  const app = initializeApp(firebaseConfig);
+  const db = getFirestore(app);
+
+  // 接管 window.storage，對接 Firebase 雲端資料庫
+  window.storage = {
+    async get(key) {
+      try {
+        const docRef = doc(db, "copyright_app", key);
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          return { value: JSON.stringify(docSnap.data().data) };
+        }
+        return null;
+      } catch (e) {
+        console.error("Firebase 讀取失敗:", e);
+        return null;
+      }
+    },
+    async set(key, value) {
+      try {
+        const docRef = doc(db, "copyright_app", key);
+        await setDoc(docRef, { data: JSON.parse(value) }, { merge: true });
+      } catch (e) {
+        console.error("Firebase 儲存失敗:", e);
+        throw e;
+      }
+    }
+  };
+
+  // 實時監聽：多人連線秒速同步更新畫面
+  onSnapshot(doc(db, "copyright_app", "projects"), (docSnap) => {
+    if (docSnap.exists() && typeof isEditingSomething === 'function' && !isEditingSomething()) {
+      const fresh = docSnap.data().data.map(migrateProject);
+      if (JSON.stringify(fresh) !== JSON.stringify(state.projects)) {
+        state.projects = fresh;
+        if (["progress", "overview", "analysis"].includes(state.tab)) render();
+      }
+    }
+  });
+
+  onSnapshot(doc(db, "copyright_app", "copyright-entries"), (docSnap) => {
+    if (docSnap.exists() && typeof isEditingSomething === 'function' && !isEditingSomething()) {
+      const fresh = docSnap.data().data;
+      if (JSON.stringify(fresh) !== JSON.stringify(state.entries)) {
+        state.entries = fresh;
+        if (state.tab === "search") render();
+      }
+    }
+  });
+</script>
+</body>
+</html>
