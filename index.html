@@ -41,7 +41,78 @@
     font-family:var(--font-body);
     -webkit-font-smoothing:antialiased;
   }
-  #app{max-width:1180px;margin:0 auto;padding:28px 20px 80px;}
+  html,body{height:100%;}
+  #shell{display:flex;align-items:stretch;min-height:100vh;}
+  #main{flex:1;min-width:0;max-width:1180px;margin:0 auto;padding:28px 20px 80px;width:100%;}
+
+  /* ---------- Sidebar (workspace / 案件組 switcher) ---------- */
+  #sidebar{
+    width:250px;flex-shrink:0;background:var(--paper-dim);
+    border-right:1px solid var(--line);
+    height:100vh;position:sticky;top:0;overflow-y:auto;
+  }
+  .sidebar-inner{padding:18px 12px;}
+  .sidebar-head{display:flex;align-items:center;justify-content:space-between;margin:0 4px 14px;}
+  .sidebar-title{font-family:var(--font-display);font-weight:700;font-size:13.5px;
+    color:var(--ink-800);letter-spacing:1px;text-transform:uppercase;}
+  .sidebar-add{
+    width:26px;height:26px;border-radius:6px;border:1px solid var(--ink-900);
+    background:var(--ink-900);color:var(--card);font-size:16px;line-height:1;flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .sidebar-add:hover{background:var(--ink-800);}
+
+  .ws-new-form{background:var(--card);border:1px dashed var(--brass);border-radius:8px;padding:10px;margin-bottom:12px;}
+  .ws-new-form input{margin-bottom:8px;}
+  .ws-new-actions{display:flex;gap:6px;}
+
+  .ws-list{display:flex;flex-direction:column;gap:4px;}
+  .ws-item{
+    position:relative;padding:9px 10px;border-radius:7px;cursor:pointer;
+    display:flex;align-items:center;justify-content:space-between;gap:6px;
+    font-size:13.5px;color:var(--ink-800);border:1px solid transparent;
+  }
+  .ws-item:hover{background:#DCD5C4;}
+  .ws-item.active{background:var(--card);border-color:var(--ink-900);
+    box-shadow:2px 2px 0 rgba(18,32,59,0.06);font-weight:700;color:var(--ink-900);}
+  .ws-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;}
+  .ws-actions{display:none;gap:2px;flex-shrink:0;}
+  .ws-item:hover .ws-actions{display:flex;}
+  .ws-action-btn{
+    width:20px;height:20px;border:none;background:transparent;color:var(--slate);
+    font-size:11px;border-radius:4px;display:flex;align-items:center;justify-content:center;
+  }
+  .ws-action-btn:hover{background:var(--paper);color:var(--ink-900);}
+  .ws-rename-input{font-size:13px;padding:4px 6px;width:100%;}
+  .ws-confirm-del{
+    position:absolute;top:calc(100% + 4px);left:0;right:0;z-index:10;
+    background:var(--card);border:1px solid var(--seal);border-radius:8px;
+    padding:10px;font-size:12px;color:var(--ink-800);line-height:1.5;
+    box-shadow:3px 4px 0 rgba(18,32,59,0.12);cursor:default;
+  }
+
+  #sidebar-toggle{display:none;}
+  .sidebar-backdrop{display:none;}
+
+  @media(max-width:860px){
+    #sidebar{
+      position:fixed;left:0;top:0;bottom:0;z-index:50;width:78vw;max-width:280px;
+      transform:translateX(-100%);transition:transform .2s ease;
+      box-shadow:4px 0 16px rgba(0,0,0,0.15);
+    }
+    #sidebar.open{transform:translateX(0);}
+    #sidebar-toggle{
+      display:flex;position:fixed;top:14px;left:14px;z-index:40;
+      width:38px;height:38px;border-radius:8px;border:1px solid var(--ink-900);
+      background:var(--card);align-items:center;justify-content:center;font-size:17px;
+      box-shadow:2px 2px 0 rgba(18,32,59,0.1);
+    }
+    #main{padding-top:66px;}
+    .sidebar-backdrop{
+      display:none;position:fixed;inset:0;background:rgba(18,16,12,.28);z-index:45;
+    }
+    .sidebar-backdrop.show{display:block;}
+  }
 
   /* Header */
   .masthead{
@@ -217,7 +288,12 @@
 </style>
 </head>
 <body>
-<div id="app"><div class="loading">載入資料中…</div></div>
+<div id="shell">
+  <div id="sidebar"><div class="sidebar-inner"><div class="loading" style="padding:20px 4px;">載入案件組…</div></div></div>
+  <div id="sidebar-backdrop" class="sidebar-backdrop" onclick="toggleSidebar(false)"></div>
+  <button id="sidebar-toggle" onclick="toggleSidebar()" title="案件組列表">☰</button>
+  <div id="main"><div class="loading">載入資料中…</div></div>
+</div>
 
 <script>
 const STAGES = [
@@ -263,6 +339,13 @@ let state = {
   npError: '',
   neError: '',
   saveError: '',
+  // 案件組（workspace）— 每一組是一整套獨立的案件清單，左側可切換
+  workspaces: [],
+  currentWorkspaceId: null,
+  showNewWorkspace: false,
+  renameWorkspaceId: null,
+  confirmDeleteWorkspaceId: null,
+  sidebarOpen: false,
 };
 
 function uid(p){ return p+'_'+Date.now().toString(36)+Math.random().toString(36).slice(2,7); }
@@ -364,24 +447,199 @@ function migrateProject(p){
   if(p.note===undefined) p.note = '';
   return p;
 }
-async function loadAll(){
+/* ---------- 案件組（workspace） ---------- */
+// 每個案件組都有自己獨立的一套 projects / entries 資料，用不同的雲端 key 存放。
+// 'default' 這個 id 對應到原本沒有分組前就已存在的舊資料 key（projects / copyright-entries），
+// 所以既有資料不需要搬移，會自動變成第一個案件組。
+const WORKSPACES_KEY = 'workspaces';
+function wsProjectsKey(id){ return (!id || id==='default') ? 'projects' : 'projects__'+id; }
+function wsEntriesKey(id){ return (!id || id==='default') ? 'copyright-entries' : 'copyright-entries__'+id; }
+function currentWorkspaceName(){
+  const w = state.workspaces.find(x=>x.id===state.currentWorkspaceId);
+  return w ? w.name : '';
+}
+async function saveWorkspaces(){
+  try{ await window.storage.set(WORKSPACES_KEY, JSON.stringify(state.workspaces), true); }
+  catch(e){ console.error('儲存案件組清單失敗', e); state.saveError='案件組清單儲存失敗，請稍後再試一次。'; render(); }
+}
+async function loadWorkspaceData(id){
   try{
-    const p = await window.storage.get('projects', true);
+    const p = await window.storage.get(wsProjectsKey(id), true);
     state.projects = p ? JSON.parse(p.value).map(migrateProject) : [];
   }catch(e){ state.projects = []; }
   try{
-    const e = await window.storage.get('copyright-entries', true);
+    const e = await window.storage.get(wsEntriesKey(id), true);
     state.entries = e ? JSON.parse(e.value) : [];
   }catch(e){ state.entries = []; }
+}
+async function switchWorkspace(id){
+  if(id===state.currentWorkspaceId) return;
+  state.currentWorkspaceId = id;
+  try{ localStorage.setItem('rm_current_workspace', id); }catch(e){}
+  state.selectedProjectId = null;
+  state.tab = 'progress';
+  state.projects = [];
+  state.entries = [];
+  render();
+  renderSidebar();
+  toggleSidebar(false);
+  // 真正的資料同步由 Firebase 即時監聽（onSnapshot）接手，這裡先嘗試一次直接讀取作為保底。
+  if(typeof window.__subscribeWorkspaceData==='function'){
+    window.__subscribeWorkspaceData();
+  } else {
+    await loadWorkspaceData(id);
+    render();
+  }
+}
+function toggleNewWorkspaceForm(){
+  state.showNewWorkspace = !state.showNewWorkspace;
+  renderSidebar();
+  if(state.showNewWorkspace){
+    setTimeout(()=>{ const el=document.getElementById('new-ws-name'); if(el) el.focus(); }, 0);
+  }
+}
+async function createWorkspace(){
+  const input = document.getElementById('new-ws-name');
+  const name = (input && input.value.trim()) || '';
+  if(!name) return;
+  const id = uid('ws');
+  state.workspaces.push({id, name});
+  state.showNewWorkspace = false;
+  renderSidebar();
+  await saveWorkspaces();
+  await switchWorkspace(id);
+}
+function newWorkspaceKeydown(ev){
+  if(ev.key==='Enter'){ ev.preventDefault(); createWorkspace(); }
+  if(ev.key==='Escape'){ toggleNewWorkspaceForm(); }
+}
+function startRenameWorkspace(id, ev){
+  if(ev) ev.stopPropagation();
+  state.renameWorkspaceId = id;
+  renderSidebar();
+  setTimeout(()=>{ const el=document.getElementById('rename-ws-input'); if(el){ el.focus(); el.select(); } }, 0);
+}
+async function confirmRenameWorkspace(id){
+  const input = document.getElementById('rename-ws-input');
+  const name = (input && input.value.trim()) || '';
+  state.renameWorkspaceId = null;
+  if(!name){ renderSidebar(); return; }
+  const w = state.workspaces.find(x=>x.id===id);
+  if(w) w.name = name;
+  renderSidebar();
+  await saveWorkspaces();
+}
+function renameWorkspaceKeydown(ev, id){
+  if(ev.key==='Enter'){ ev.preventDefault(); confirmRenameWorkspace(id); }
+  if(ev.key==='Escape'){ state.renameWorkspaceId = null; renderSidebar(); }
+}
+function askDeleteWorkspace(id, ev){
+  if(ev) ev.stopPropagation();
+  state.confirmDeleteWorkspaceId = id;
+  renderSidebar();
+}
+function cancelDeleteWorkspace(ev){
+  if(ev) ev.stopPropagation();
+  state.confirmDeleteWorkspaceId = null;
+  renderSidebar();
+}
+async function deleteWorkspace(id, ev){
+  if(ev) ev.stopPropagation();
+  if(state.workspaces.length<=1){ state.confirmDeleteWorkspaceId=null; renderSidebar(); return; }
+  state.workspaces = state.workspaces.filter(w=>w.id!==id);
+  state.confirmDeleteWorkspaceId = null;
+  renderSidebar();
+  await saveWorkspaces();
+  if(state.currentWorkspaceId===id){
+    await switchWorkspace(state.workspaces[0].id);
+  }
+}
+function toggleSidebar(force){
+  state.sidebarOpen = typeof force==='boolean' ? force : !state.sidebarOpen;
+  const sb = document.getElementById('sidebar');
+  const bd = document.getElementById('sidebar-backdrop');
+  if(sb) sb.classList.toggle('open', state.sidebarOpen);
+  if(bd) bd.classList.toggle('show', state.sidebarOpen);
+}
+function renderSidebar(){
+  const el = document.getElementById('sidebar');
+  if(!el) return;
+  if(!state.workspaces.length){
+    el.innerHTML = `<div class="sidebar-inner"><div class="loading" style="padding:20px 4px;">載入案件組…</div></div>`;
+    return;
+  }
+  el.innerHTML = `
+    <div class="sidebar-inner">
+      <div class="sidebar-head">
+        <div class="sidebar-title">案件組</div>
+        <button class="sidebar-add" onclick="toggleNewWorkspaceForm()" title="新增案件組">＋</button>
+      </div>
+      ${state.showNewWorkspace ? `
+        <div class="ws-new-form">
+          <input id="new-ws-name" placeholder="例如：王小姐 / A組客戶" onkeydown="newWorkspaceKeydown(event)">
+          <div class="ws-new-actions">
+            <button class="btn small" onclick="createWorkspace()">建立</button>
+            <button class="btn small secondary" onclick="toggleNewWorkspaceForm()">取消</button>
+          </div>
+        </div>` : ''}
+      <div class="ws-list">
+        ${state.workspaces.map(w=>`
+          <div class="ws-item ${w.id===state.currentWorkspaceId?'active':''}" onclick="switchWorkspace('${w.id}')">
+            ${state.renameWorkspaceId===w.id ? `
+              <input id="rename-ws-input" class="ws-rename-input" value="${esc(w.name)}"
+                onclick="event.stopPropagation()"
+                onkeydown="renameWorkspaceKeydown(event,'${w.id}')"
+                onblur="confirmRenameWorkspace('${w.id}')">
+            ` : `
+              <span class="ws-name">${esc(w.name)}</span>
+              <span class="ws-actions">
+                <button class="ws-action-btn" onclick="startRenameWorkspace('${w.id}', event)" title="重新命名">✎</button>
+                ${state.workspaces.length>1 ? `<button class="ws-action-btn" onclick="askDeleteWorkspace('${w.id}', event)" title="刪除">✕</button>` : ''}
+              </span>
+            `}
+            ${state.confirmDeleteWorkspaceId===w.id ? `
+              <div class="ws-confirm-del" onclick="event.stopPropagation()">
+                確定要移除「${esc(w.name)}」這個案件組嗎？（案件資料仍會保留在雲端，只是側欄不會再顯示）
+                <div style="margin-top:6px;">
+                  <button class="btn small danger" onclick="deleteWorkspace('${w.id}', event)">刪除</button>
+                  <button class="btn small secondary" onclick="cancelDeleteWorkspace(event)">取消</button>
+                </div>
+              </div>
+            ` : ''}
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+}
+
+async function loadAll(){
+  // 案件組清單與目前組別的資料，主要由下方 Firebase <script type="module"> 的
+  // onSnapshot 即時監聽負責載入與初始化（可正確判斷雲端是否「真的還沒有資料」）。
+  // 這裡先嘗試一次直接讀取，若當下 window.storage 還沒就緒也沒關係，會被即時監聽覆蓋。
+  try{
+    const w = await window.storage.get(WORKSPACES_KEY, true);
+    if(w){
+      const list = JSON.parse(w.value);
+      if(Array.isArray(list) && list.length){
+        state.workspaces = list;
+        let saved = null;
+        try{ saved = localStorage.getItem('rm_current_workspace'); }catch(e){}
+        state.currentWorkspaceId = (saved && list.find(x=>x.id===saved)) ? saved : list[0].id;
+        await loadWorkspaceData(state.currentWorkspaceId);
+      }
+    }
+  }catch(e){ /* 交給即時監聽處理 */ }
   state.loaded = true;
   render();
+  renderSidebar();
 }
 async function saveProjects(){
-  try{ await window.storage.set('projects', JSON.stringify(state.projects), true); state.saveError=''; }
+  try{ await window.storage.set(wsProjectsKey(state.currentWorkspaceId), JSON.stringify(state.projects), true); state.saveError=''; }
   catch(e){ console.error('儲存專案失敗', e); state.saveError='儲存失敗，請稍後再試一次（資料可能尚未同步）。'; render(); }
 }
 async function saveEntries(){
-  try{ await window.storage.set('copyright-entries', JSON.stringify(state.entries), true); state.saveError=''; }
+  try{ await window.storage.set(wsEntriesKey(state.currentWorkspaceId), JSON.stringify(state.entries), true); state.saveError=''; }
   catch(e){ console.error('儲存版權資料失敗', e); state.saveError='儲存失敗，請稍後再試一次（資料可能尚未同步）。'; render(); }
 }
 
@@ -587,14 +845,14 @@ function submitNewProject(){
 
 /* ---------- render: shell ---------- */
 function render(){
-  const app = document.getElementById('app');
+  const app = document.getElementById('main');
   if(!state.loaded){ app.innerHTML = '<div class="loading">載入資料中…</div>'; return; }
   try{
     app.innerHTML = `
       <div class="masthead">
         <div>
           <h1>版權週期管理</h1>
-          <div class="sub">合約審批 → 雙蓋 → 公證 → 送審　｜　內部案件追蹤工具</div>
+          <div class="sub">合約審批 → 雙蓋 → 公證 → 送審　｜　內部案件追蹤工具${currentWorkspaceName()?`　｜　案件組：${esc(currentWorkspaceName())}`:''}</div>
         </div>
         <div class="stampmark">案件<br>追蹤</div>
       </div>
@@ -1204,13 +1462,14 @@ function renderAnalysisTab(){
 function isEditingSomething(){
   return !!(state.showNewProject || state.showNewEntry || state.editEntryId ||
     state.completingProjectId || state.confirmDeleteProjectId || state.confirmDeleteEntryId ||
-    state.showExcelImportConfirm);
+    state.showExcelImportConfirm || state.showNewWorkspace || state.renameWorkspaceId ||
+    state.confirmDeleteWorkspaceId);
 }
 function startAutoRefresh(){
   setInterval(async ()=>{
     if(isEditingSomething()) return; // 避免在填寫表單時被別人的更新蓋掉畫面
     try{
-      const p = await window.storage.get('projects', true);
+      const p = await window.storage.get(wsProjectsKey(state.currentWorkspaceId), true);
       const fresh = p ? JSON.parse(p.value).map(migrateProject) : [];
       if(JSON.stringify(fresh) !== JSON.stringify(state.projects)){
         state.projects = fresh;
@@ -1218,7 +1477,7 @@ function startAutoRefresh(){
       }
     }catch(e){ /* 暫時取得失敗就略過，下一輪再試 */ }
     try{
-      const e = await window.storage.get('copyright-entries', true);
+      const e = await window.storage.get(wsEntriesKey(state.currentWorkspaceId), true);
       const fresh = e ? JSON.parse(e.value) : [];
       if(JSON.stringify(fresh) !== JSON.stringify(state.entries)){
         state.entries = fresh;
@@ -1278,24 +1537,76 @@ loadAll();
   };
 
   // 實時監聽：多人連線秒速同步更新畫面
-  onSnapshot(doc(db, "copyright_app", "projects"), (docSnap) => {
-    if (docSnap.exists() && typeof isEditingSomething === 'function' && !isEditingSomething()) {
-      const fresh = docSnap.data().data.map(migrateProject);
+  // -------------------------------------------------------------
+  // 案件組（workspace）機制：
+  //  - 'workspaces' 這份文件存放案件組清單 [{id,name}, ...]，所有人共用同一份清單。
+  //  - 每個案件組各自有一份 projects / copyright-entries 資料，'default' 組沿用原本的
+  //    舊 key（projects / copyright-entries），其餘組別用 projects__<id} 這種 key 隔開。
+  //  - 用 onSnapshot 而非 window.storage.get 來判斷「雲端到底存不存在資料」，
+  //    避免因為 classic script 先跑、當下 window.storage 還沒接上而誤判成空資料並覆蓋掉雲端內容。
+  function wsProjectsKey(id){ return (!id || id==='default') ? 'projects' : 'projects__'+id; }
+  function wsEntriesKey(id){ return (!id || id==='default') ? 'copyright-entries' : 'copyright-entries__'+id; }
+
+  let workspacesInitialized = false;
+  let unsubProjects = null;
+  let unsubEntries = null;
+
+  function subscribeWorkspaceData(){
+    if (unsubProjects) { unsubProjects(); unsubProjects = null; }
+    if (unsubEntries) { unsubEntries(); unsubEntries = null; }
+    const wid = state.currentWorkspaceId;
+    unsubProjects = onSnapshot(doc(db, "copyright_app", wsProjectsKey(wid)), (docSnap) => {
+      if (typeof isEditingSomething === 'function' && isEditingSomething()) return;
+      const fresh = docSnap.exists() ? docSnap.data().data.map(migrateProject) : [];
       if (JSON.stringify(fresh) !== JSON.stringify(state.projects)) {
         state.projects = fresh;
         if (["progress", "overview", "analysis"].includes(state.tab)) render();
       }
-    }
-  });
-
-  onSnapshot(doc(db, "copyright_app", "copyright-entries"), (docSnap) => {
-    if (docSnap.exists() && typeof isEditingSomething === 'function' && !isEditingSomething()) {
-      const fresh = docSnap.data().data;
+    });
+    unsubEntries = onSnapshot(doc(db, "copyright_app", wsEntriesKey(wid)), (docSnap) => {
+      if (typeof isEditingSomething === 'function' && isEditingSomething()) return;
+      const fresh = docSnap.exists() ? docSnap.data().data : [];
       if (JSON.stringify(fresh) !== JSON.stringify(state.entries)) {
         state.entries = fresh;
         if (state.tab === "search") render();
       }
+    });
+  }
+  // 讓 classic script（切換案件組時）可以呼叫這個函式，重新訂閱新組別的資料。
+  window.__subscribeWorkspaceData = subscribeWorkspaceData;
+
+  onSnapshot(doc(db, "copyright_app", "workspaces"), async (docSnap) => {
+    let list = docSnap.exists() ? docSnap.data().data : null;
+    const isFirstLoad = !workspacesInitialized;
+
+    if (!Array.isArray(list) || list.length === 0) {
+      list = [{ id: 'default', name: '預設案件組' }];
+      if (!docSnap.exists()) {
+        // 雲端真的還沒有任何案件組清單（不是讀取時機問題），才建立初始的一組。
+        try { await setDoc(doc(db, "copyright_app", "workspaces"), { data: list }, { merge: true }); }
+        catch (e) { console.error('建立初始案件組清單失敗', e); }
+      }
     }
+
+    const changed = JSON.stringify(list) !== JSON.stringify(state.workspaces);
+    state.workspaces = list;
+
+    if (isFirstLoad) {
+      workspacesInitialized = true;
+      let saved = null;
+      try { saved = localStorage.getItem('rm_current_workspace'); } catch (e) {}
+      state.currentWorkspaceId = (saved && list.find(w => w.id === saved)) ? saved : list[0].id;
+      subscribeWorkspaceData();
+      state.loaded = true;
+      render();
+    } else if (changed && !list.find(w => w.id === state.currentWorkspaceId)) {
+      // 目前選取的案件組被別人刪除了，自動切換到清單第一組。
+      state.currentWorkspaceId = list[0].id;
+      try { localStorage.setItem('rm_current_workspace', state.currentWorkspaceId); } catch (e) {}
+      subscribeWorkspaceData();
+      render();
+    }
+    if (typeof renderSidebar === 'function') renderSidebar();
   });
 </script>
 </body>
