@@ -297,6 +297,7 @@
   .bottleneck-bar-fill{height:100%;border-radius:999px;}
   .bottleneck-days{font-family:var(--font-mono);font-size:12.5px;width:56px;text-align:right;flex-shrink:0;}
 </style>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
 </head>
 <body>
 <div id="shell">
@@ -432,6 +433,53 @@ function renderExcelImportBox(){
     <button class="btn small" onclick="runExcelImport()">確定匯入</button>
     <button class="btn small secondary" onclick="toggleExcelImportConfirm()">取消</button>
   </div>`;
+}
+
+/* ---------- Excel 匯出（把目前這個案件組的資料匯出成 .xlsx） ---------- */
+function exportToExcel(){
+  if(typeof XLSX==='undefined'){
+    alert('匯出功能還在載入中，請稍等幾秒再試一次。');
+    return;
+  }
+  const wb = XLSX.utils.book_new();
+
+  const projRows = state.projects.map(p=>{
+    const row = {
+      '案件名稱': p.name,
+      '持有方': p.holder||'',
+      '目前階段': p.completed ? '已完成送審' : (currentStage(p)?currentStage(p).label:''),
+      '是否完成送審': p.completed ? '是' : '否',
+      '是否逾期': isOverdue(p) ? '是' : '否',
+    };
+    STAGES.forEach(s=>{
+      const st = (p.stages && p.stages[s.key]) || {};
+      row[s.label+'-開始日'] = st.start || '';
+      row[s.label+'-預計完成日'] = st.due || '';
+      row[s.label+'-是否完成'] = st.done ? '是' : '否';
+      row[s.label+'-完成日'] = st.doneDate || '';
+    });
+    row['送審狀態'] = submissionLabel(p.submission && p.submission.status);
+    row['核備取得'] = (p.approvalCert && p.approvalCert.obtained) ? '是' : '否';
+    row['母版狀況'] = (p.masterExtraction && p.masterExtraction.scope) || '';
+    row['授權鏈完整'] = (p.licenseChain && p.licenseChain.obtained) ? '是' : '否';
+    row['備註'] = p.note || '';
+    return row;
+  });
+  const ws1 = XLSX.utils.json_to_sheet(projRows);
+  XLSX.utils.book_append_sheet(wb, ws1, '案件進度');
+
+  const entryRows = state.entries.map(e=>({
+    '持有方': e.holder||'',
+    '劇名': e.drama||'',
+    '審片狀態': e.reviewStatus||'',
+    '版權狀態': e.rightsStatus||'',
+    '標記': colorLabel(e.rightsColor),
+  }));
+  const ws2 = XLSX.utils.json_to_sheet(entryRows);
+  XLSX.utils.book_append_sheet(wb, ws2, '版權搜尋');
+
+  const wsName = (currentWorkspaceName()||'案件組').replace(/[\\/:*?"<>|]/g,'_');
+  XLSX.writeFile(wb, `案件資料_${wsName}_${todayStr()}.xlsx`);
 }
 
 /* ---------- storage ---------- */
@@ -921,6 +969,7 @@ function renderProgressTab(){
     <div class="toolbar">
       <h2>案件清單</h2>
       <button class="btn" onclick="toggleNewProject()">${state.showNewProject?'取消':'+ 新增案件'}</button>
+      <button class="btn secondary" onclick="exportToExcel()">匯出 Excel</button>
       <button class="btn secondary" onclick="toggleExcelImportConfirm()">匯入 Excel 初始資料</button>
     </div>
     ${renderExcelImportBox()}
